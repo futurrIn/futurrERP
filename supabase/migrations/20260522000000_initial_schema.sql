@@ -125,6 +125,8 @@ ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
 -- A. Profiles Policies
 CREATE POLICY "Self access" ON profiles FOR ALL USING (auth.uid() = id);
 
+CREATE POLICY "Allow public insert on signup" ON profiles FOR INSERT WITH CHECK (true);
+
 CREATE POLICY "Admin view all profiles" ON profiles FOR SELECT USING (
   get_my_role() = 'Admin'
 );
