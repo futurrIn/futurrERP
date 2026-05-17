@@ -75,12 +75,13 @@ const Dashboard = ({ onNavigateToHistory }: { onNavigateToHistory: () => void })
   const filteredReceipts = useMemo(() => filterByTimeframe(receipts), [receipts, timeframe]);
   const filteredTeamExpenses = useMemo(() => filterByTimeframe(teamExpenses), [teamExpenses, timeframe]);
   const filteredManagerTeamExpenses = useMemo(() => filterByTimeframe(managerTeamExpenses), [managerTeamExpenses, timeframe]);
+  const filteredExpenses = useMemo(() => filterByTimeframe(expenses), [expenses, timeframe]);
   
   // Calculate Stats
   const stats = useMemo(() => {
     if (isFinanceRole) {
       const totalRev = filteredReceipts.reduce((sum, r) => sum + (r.amount || 0), 0);
-      const totalExp = filteredTeamExpenses.reduce((sum, e) => sum + (e.totalAmount || 0), 0);
+      const totalExp = filteredTeamExpenses.filter(e => e.status === 'Approved').reduce((sum, e) => sum + (e.totalAmount || 0), 0);
       const pendingExp = teamExpenses.filter(e => e.status === 'Pending').length;
       
       return [
@@ -92,23 +93,23 @@ const Dashboard = ({ onNavigateToHistory }: { onNavigateToHistory: () => void })
     } else if (isManager) {
       const pendingExp = managerTeamExpenses.filter(e => e.status === 'Pending').length;
       const teamTotalExp = filteredManagerTeamExpenses.filter(e => e.status === 'Approved').reduce((sum, e) => sum + (e.totalAmount || 0), 0);
-      const myTotalExp = expenses.reduce((sum, e) => sum + (e.totalAmount || 0), 0);
+      const myTotalExp = filteredExpenses.reduce((sum, e) => sum + (e.totalAmount || 0), 0);
       return [
         { label: 'Team Pending', value: pendingExp.toString(), icon: Users, trend: 'Review', color: 'bg-amber-500' },
         { label: 'Team Approved Spend', value: `₹${teamTotalExp.toLocaleString()}`, icon: TrendingDown, trend: 'Outflow', color: 'bg-red-500' },
         { label: 'My Claims', value: `₹${myTotalExp.toLocaleString()}`, icon: TrendingUp, trend: 'Total', color: 'bg-indigo-600' },
-        { label: 'My Submissions', value: expenses.length.toString(), icon: LayoutDashboard, trend: 'Volume', color: 'bg-emerald-500' }
+        { label: 'My Submissions', value: filteredExpenses.length.toString(), icon: LayoutDashboard, trend: 'Volume', color: 'bg-emerald-500' }
       ];
     } else {
-      const total = expenses.reduce((sum, exp) => sum + (exp.totalAmount || 0), 0);
-      const pending = expenses.filter(e => e.status === 'Pending').length;
+      const total = filteredExpenses.filter(e => e.status === 'Approved').reduce((sum, exp) => sum + (exp.totalAmount || 0), 0);
+      const pending = filteredExpenses.filter(e => e.status === 'Pending').length;
       return [
         { label: 'Total Claims', value: `₹${total.toLocaleString()}`, icon: TrendingUp, trend: 'Overall', color: 'bg-indigo-600' },
         { label: 'Pending Approval', value: pending.toString(), icon: Clock, trend: 'Active', color: 'bg-amber-500' },
-        { label: 'Active Submissions', value: expenses.length.toString(), icon: LayoutDashboard, trend: 'Volume', color: 'bg-emerald-500' },
+        { label: 'Active Submissions', value: filteredExpenses.length.toString(), icon: LayoutDashboard, trend: 'Volume', color: 'bg-emerald-500' },
       ];
     }
-  }, [isFinanceRole, isManager, filteredReceipts, filteredTeamExpenses, filteredManagerTeamExpenses, teamExpenses, managerTeamExpenses, expenses]);
+  }, [isFinanceRole, isManager, filteredReceipts, filteredTeamExpenses, filteredManagerTeamExpenses, filteredExpenses, teamExpenses, managerTeamExpenses]);
 
   // Generate Chart Data
   const chartData = useMemo(() => {
@@ -194,16 +195,16 @@ const Dashboard = ({ onNavigateToHistory }: { onNavigateToHistory: () => void })
   const recentItems = useMemo(() => {
     let data = [];
     if (isFinanceRole) {
-      if (activeChart === 'revenue') data = receipts;
-      else if (activeChart === 'expenses') data = teamExpenses;
-      else data = [...receipts, ...teamExpenses];
+      if (activeChart === 'revenue') data = filteredReceipts;
+      else if (activeChart === 'expenses') data = filteredTeamExpenses;
+      else data = [...filteredReceipts, ...filteredTeamExpenses];
     } else if (isManager) {
-      data = managerTeamExpenses;
+      data = filteredManagerTeamExpenses;
     } else {
-      data = expenses;
+      data = filteredExpenses;
     }
     return [...data].sort((a, b) => new Date(b.date || b.createdAt).getTime() - new Date(a.date || a.createdAt).getTime()).slice(0, 5);
-  }, [isFinanceRole, isManager, activeChart, receipts, teamExpenses, managerTeamExpenses, expenses]);
+  }, [isFinanceRole, isManager, activeChart, filteredReceipts, filteredTeamExpenses, filteredManagerTeamExpenses, filteredExpenses]);
 
   return (
     <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 px-4 md:px-0 pb-20">
