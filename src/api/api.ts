@@ -27,21 +27,6 @@ export const api = {
     });
     
     if (authError) throw authError;
-    if (!authData.user) throw new Error('Signup failed');
-
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert([{
-        id: authData.user.id,
-        email,
-        fullName,
-        phone,
-        role,
-        department,
-        jobPosition
-      }]);
-    
-    if (profileError) throw profileError;
     return authData;
   },
 
