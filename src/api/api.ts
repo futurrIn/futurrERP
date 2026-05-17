@@ -22,7 +22,7 @@ export const api = {
       email, 
       password,
       options: {
-        data: { fullName, phone }
+        data: { fullName, phone, role, department, jobPosition }
       }
     });
     
