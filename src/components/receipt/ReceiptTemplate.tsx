@@ -78,22 +78,23 @@ const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({ receipt, settings, on
 
     try {
       const canvas = await html2canvas(element, {
-        scale: 2,
+        scale: 1.5,
         useCORS: true,
         logging: false,
       });
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/jpeg', 0.75);
       
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
+        compress: true,
       });
 
       const imgWidth = 210;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
       pdf.save(`Receipt-${receipt.receiptNumber}.pdf`);
       
       toast.success('PDF downloaded successfully!', { id: toastId });
