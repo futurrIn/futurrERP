@@ -36,8 +36,11 @@ export const api = {
   },
 
   getProfile: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      await supabase.auth.signOut();
+      return null;
+    }
 
     const { data, error } = await supabase
       .from('profiles')
