@@ -81,6 +81,7 @@ CREATE TABLE expenses (
   "purchaseVendor" TEXT,
   "purchaseItem" TEXT,
   "purchaseAmount" FLOAT8 DEFAULT 0,
+  "purchases" JSONB DEFAULT '[]'::jsonb,
   "totalAmount" FLOAT8 DEFAULT 0,
   "billUrl" TEXT,
   "status" TEXT DEFAULT 'Pending', 
