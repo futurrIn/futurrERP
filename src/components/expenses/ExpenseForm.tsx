@@ -31,6 +31,12 @@ interface Trip {
   amount: number;
 }
 
+interface Purchase {
+  vendor: string;
+  item: string;
+  amount: number;
+}
+
 interface ExpenseFormData {
   date: string;
   trips: Trip[];
@@ -38,9 +44,7 @@ interface ExpenseFormData {
   foodAmount: number;
   accommodationAmount: number;
   accommodationDays: number;
-  purchaseVendor: string;
-  purchaseItem: string;
-  purchaseAmount: number;
+  purchases: Purchase[];
 }
 
 const ExpenseForm = ({ editData, onComplete, onNew }: any) => {
@@ -51,23 +55,31 @@ const ExpenseForm = ({ editData, onComplete, onNew }: any) => {
   const { register, handleSubmit, watch, setValue, reset, control } = useForm<ExpenseFormData>({
     defaultValues: editData ? {
       ...editData,
-      date: new Date(editData.date).toISOString().slice(0, 16)
+      date: new Date(editData.date).toISOString().slice(0, 16),
+      purchases: editData.purchases?.length
+        ? editData.purchases
+        : editData.purchaseVendor
+          ? [{ vendor: editData.purchaseVendor, item: editData.purchaseItem, amount: editData.purchaseAmount }]
+          : []
     } : {
       date: new Date().toISOString().slice(0, 16),
-      trips: [], 
+      trips: [],
       foodType: [],
       foodAmount: 0,
       accommodationAmount: 0,
       accommodationDays: 0,
-      purchaseVendor: '',
-      purchaseItem: '',
-      purchaseAmount: 0
+      purchases: []
     }
   });
 
   const { fields, append, remove } = useFieldArray({
     control,
     name: "trips"
+  });
+
+  const { fields: purchaseFields, append: appendPurchase, remove: removePurchase } = useFieldArray({
+    control,
+    name: "purchases"
   });
 
   const mutation = useMutation({
@@ -78,11 +90,12 @@ const ExpenseForm = ({ editData, onComplete, onNew }: any) => {
       }
       
       const travelTotal = data.trips.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
-      const totalAmount = 
-        travelTotal + 
-        Number(data.foodAmount || 0) + 
-        Number(data.accommodationAmount || 0) + 
-        Number(data.purchaseAmount || 0);
+      const purchasesTotal = (data.purchases || []).reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+      const totalAmount =
+        travelTotal +
+        Number(data.foodAmount || 0) +
+        Number(data.accommodationAmount || 0) +
+        purchasesTotal;
 
       const payload = {
         ...data,
@@ -332,25 +345,76 @@ const ExpenseForm = ({ editData, onComplete, onNew }: any) => {
         </div>
 
         {/* General Purchases Section */}
-        <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-4 md:mb-6 text-purple-600">
-            <ShoppingBag size={20} className="md:w-6 md:h-6" />
-            <h3 className="text-lg md:text-xl font-bold text-slate-800">General Purchases</h3>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-2">
+            <h3 className="text-lg font-bold text-slate-700 flex items-center gap-2">
+              <ShoppingBag size={20} className="text-purple-500" />
+              General Purchases
+            </h3>
+            <button
+              type="button"
+              onClick={() => appendPurchase({ vendor: '', item: '', amount: 0 })}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-600 rounded-xl text-sm font-bold hover:bg-purple-100 transition-all active:scale-95"
+            >
+              <PlusCircle size={18} />
+              Add Vendor
+            </button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Vendor</label>
-              <input {...register('purchaseVendor')} className="w-full px-4 py-2.5 md:py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm" placeholder="Vendor Name" />
+
+          {purchaseFields.map((field, index) => (
+            <div key={field.id} className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm animate-in zoom-in-95 duration-200 relative group">
+              <div className="absolute top-4 md:top-6 right-4 md:right-6">
+                <button
+                  type="button"
+                  onClick={() => removePurchase(index)}
+                  className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                >
+                  <Trash2 size={16} className="md:w-5 md:h-5" />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 mb-4 md:mb-6">
+                <span className="px-3 py-1 bg-purple-50 text-purple-600 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                  Purchase - {index + 1}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Vendor</label>
+                  <input
+                    {...register(`purchases.${index}.vendor` as const)}
+                    className="w-full px-4 py-2.5 md:py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-purple-400 transition-colors text-sm"
+                    placeholder="Vendor Name"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Item / Service</label>
+                  <input
+                    {...register(`purchases.${index}.item` as const)}
+                    className="w-full px-4 py-2.5 md:py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-purple-400 transition-colors text-sm"
+                    placeholder="Item or Service"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Amount (₹)</label>
+                  <input
+                    {...register(`purchases.${index}.amount` as const)}
+                    type="number"
+                    className="w-full px-4 py-2.5 md:py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-purple-400 transition-colors text-sm font-bold"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
             </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Item</label>
-              <input {...register('purchaseItem')} className="w-full px-4 py-2.5 md:py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm" placeholder="Item/Service" />
+          ))}
+
+          {purchaseFields.length === 0 && (
+            <div className="py-12 border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center text-slate-400 space-y-2">
+              <ShoppingBag size={32} className="opacity-20" />
+              <p className="text-sm font-medium">No purchases added. Click "Add Vendor" to start.</p>
             </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Amount (₹)</label>
-              <input {...register('purchaseAmount')} type="number" className="w-full px-4 py-2.5 md:py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-bold" placeholder="0.00" />
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Bill Upload Section */}
