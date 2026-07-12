@@ -5,20 +5,19 @@
 -- required for the complete production application.
 -- =====================================================================================
 
--- -------------------------------------------------------------------------------------
--- 1. CLEANUP (Idempotency)
--- -------------------------------------------------------------------------------------
-DROP TABLE IF EXISTS expenses CASCADE;
-DROP TABLE IF EXISTS receipts CASCADE;
-DROP TABLE IF EXISTS settings CASCADE;
-DROP TABLE IF EXISTS profiles CASCADE;
+-- SAFETY: Do NOT drop tables in production. This schema uses IF NOT EXISTS
+-- so it is safe to run against a live database without data loss.
+-- DROP TABLE IF EXISTS expenses CASCADE;
+-- DROP TABLE IF EXISTS receipts CASCADE;
+-- DROP TABLE IF EXISTS settings CASCADE;
+-- DROP TABLE IF EXISTS profiles CASCADE;
 
 -- -------------------------------------------------------------------------------------
 -- 2. TABLES DEFINITION
 -- -------------------------------------------------------------------------------------
 
 -- A. Profiles Table (Linked to Supabase Auth)
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS profiles (
   "id" UUID PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
   "email" TEXT,
   "fullName" TEXT,
@@ -31,7 +30,7 @@ CREATE TABLE profiles (
 );
 
 -- B. Settings Table (Global Company Config)
-CREATE TABLE settings (
+CREATE TABLE IF NOT EXISTS settings (
   "id" BIGINT PRIMARY KEY DEFAULT 1,
   "companyName" TEXT DEFAULT 'Futurr',
   "companyAddress" TEXT DEFAULT '',
@@ -49,7 +48,7 @@ CREATE TABLE settings (
 );
 
 -- C. Receipts Table (Revenue Tracking)
-CREATE TABLE receipts (
+CREATE TABLE IF NOT EXISTS receipts (
   "id" BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   "receiptNumber" TEXT NOT NULL UNIQUE,
   "studentName" TEXT NOT NULL,
@@ -70,7 +69,7 @@ CREATE TABLE receipts (
 );
 
 -- D. Expenses Table (Reimbursements and Claims)
-CREATE TABLE expenses (
+CREATE TABLE IF NOT EXISTS expenses (
   "id" BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   "date" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   "trips" JSONB DEFAULT '[]'::jsonb, 
