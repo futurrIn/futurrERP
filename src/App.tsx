@@ -70,7 +70,12 @@ const AppContent: React.FC = () => {
 
   const handleEditExpense = (expense: any) => {
     setEditingExpense(expense);
-    setActiveTab('generator');
+    setActiveTab('expense-generator');
+  };
+
+  const handleNewExpense = () => {
+    setEditingExpense(null);
+    setActiveTab('expense-generator');
   };
 
   const renderContent = () => {
@@ -93,6 +98,7 @@ const AppContent: React.FC = () => {
         return (
           <ExpenseForm 
             editData={editingExpense}
+            onNew={handleNewExpense}
             onComplete={() => {
               setEditingExpense(null);
               setActiveTab('expense-history');

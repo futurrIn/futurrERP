@@ -43,7 +43,7 @@ interface ExpenseFormData {
   purchaseAmount: number;
 }
 
-const ExpenseForm = ({ editData, onComplete }: any) => {
+const ExpenseForm = ({ editData, onComplete, onNew }: any) => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const queryClient = useQueryClient();
@@ -111,9 +111,13 @@ const ExpenseForm = ({ editData, onComplete }: any) => {
   };
 
   const handleNewSubmission = () => {
-    reset();
-    setFile(null);
-    setIsSubmitted(false);
+    if (onNew) {
+      onNew();
+    } else {
+      reset();
+      setFile(null);
+      setIsSubmitted(false);
+    }
   };
 
   const publicModes = ['Bus', 'Auto', 'Cab', 'Train', 'Flight'];
