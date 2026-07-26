@@ -111,6 +111,10 @@ const ExpenseForm = ({ editData, onComplete, onNew }: any) => {
 
       const payload = {
         ...data,
+        foodAmount: Number(data.foodAmount) || 0,
+        accommodationAmount: Number(data.accommodationAmount) || 0,
+        trips: data.trips.map((t: any) => ({ ...t, amount: Number(t.amount) || 0 })),
+        purchases: (data.purchases || []).map((p: any) => ({ ...p, amount: Number(p.amount) || 0 })),
         totalAmount,
         billUrl
       };
