@@ -40,6 +40,14 @@ const AdvanceManager = ({ onNewAdvance }: { onNewAdvance: () => void }) => {
     }
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.deleteAdvance(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-advances'] });
+      toast.success('Advance deleted successfully');
+    }
+  });
+
   if (isLoading) return <div className="p-8 text-center"><RefreshCcw className="animate-spin mx-auto text-indigo-600" /></div>;
 
   const filtered = advances?.filter((a: any) => 
@@ -154,26 +162,38 @@ const AdvanceManager = ({ onNewAdvance }: { onNewAdvance: () => void }) => {
                     </span>
                   </td>
                   <td className="p-4 text-right">
-                    {adv.remaining_amount > 0 && (
-                      <div className="flex items-center justify-end gap-2">
-                        <button 
-                          onClick={() => handleReturn(adv.id, adv.remaining_amount)}
-                          className="text-xs font-bold text-blue-600 hover:bg-blue-50 px-2 py-1 rounded"
-                        >
-                          Record Return
-                        </button>
-                        <button 
-                          onClick={() => {
-                            if(window.confirm('Are you sure you want to close this advance? (Remaining balance will be written off)')) {
-                              closeMutation.mutate(adv.id);
-                            }
-                          }}
-                          className="text-xs font-bold text-red-600 hover:bg-red-50 px-2 py-1 rounded"
-                        >
-                          Close
-                        </button>
-                      </div>
-                    )}
+                    <div className="flex items-center justify-end gap-2">
+                      {adv.remaining_amount > 0 && (
+                        <>
+                          <button 
+                            onClick={() => handleReturn(adv.id, adv.remaining_amount)}
+                            className="text-xs font-bold text-blue-600 hover:bg-blue-50 px-2 py-1 rounded"
+                          >
+                            Record Return
+                          </button>
+                          <button 
+                            onClick={() => {
+                              if(window.confirm('Are you sure you want to close this advance? (Remaining balance will be written off)')) {
+                                closeMutation.mutate(adv.id);
+                              }
+                            }}
+                            className="text-xs font-bold text-orange-600 hover:bg-orange-50 px-2 py-1 rounded"
+                          >
+                            Close
+                          </button>
+                        </>
+                      )}
+                      <button 
+                        onClick={() => {
+                          if(window.confirm('Are you sure you want to completely delete this advance record? This cannot be undone.')) {
+                            deleteMutation.mutate(adv.id);
+                          }
+                        }}
+                        className="text-xs font-bold text-red-600 hover:bg-red-50 px-2 py-1 rounded"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

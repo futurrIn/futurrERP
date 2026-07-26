@@ -440,6 +440,14 @@ export const api = {
     return data;
   },
 
+  deleteAdvance: async (id: number) => {
+    // Delete associated transactions first to maintain referential integrity if foreign keys aren't cascaded
+    await supabase.from('advance_transactions').delete().eq('advance_id', id);
+    const { error } = await supabase.from('employee_advances').delete().eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  },
+
   // --- Customers ---
   getCustomers: async () => {
     const { data, error } = await supabase

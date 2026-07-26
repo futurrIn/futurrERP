@@ -7,7 +7,11 @@ import { Loader2, ArrowLeft, Send } from 'lucide-react';
 
 const AdvanceForm = ({ onBack }: { onBack: () => void }) => {
   const queryClient = useQueryClient();
-  const { register, handleSubmit, reset } = useForm();
+  const { register, handleSubmit, reset } = useForm<any>({
+    defaultValues: {
+      transfer_date: new Date().toISOString().split('T')[0]
+    }
+  });
   
   const { data: users } = useQuery({
     queryKey: ['users'],
@@ -23,7 +27,8 @@ const AdvanceForm = ({ onBack }: { onBack: () => void }) => {
       project_id: data.project_id,
       payment_method: data.payment_method,
       transaction_id: data.transaction_id,
-      notes: data.notes
+      notes: data.notes,
+      transfer_date: data.transfer_date
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-advances'] });
@@ -63,6 +68,15 @@ const AdvanceForm = ({ onBack }: { onBack: () => void }) => {
                 <option key={u.id} value={u.id}>{u.fullName} ({u.department || 'N/A'})</option>
               ))}
             </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-slate-700">Date of Transfer *</label>
+            <input 
+              type="date"
+              {...register('transfer_date', { required: true })}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20"
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
