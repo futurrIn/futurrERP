@@ -116,6 +116,19 @@ const Dashboard = ({ onNavigateToHistory }: { onNavigateToHistory: () => void })
     
     const budgetUsedPercent = monthlyBudget > 0 ? (currentMonthExpenses / monthlyBudget) * 100 : 0;
 
+    // Expense Breakdown
+    const travelTotal = filteredTeamExpenses.filter(e => e.status === 'Approved').reduce((sum, e) => {
+      return sum + (e.trips || []).reduce((ts: number, t: any) => ts + (Number(t.amount) || 0), 0);
+    }, 0);
+    
+    const foodAccTotal = filteredTeamExpenses.filter(e => e.status === 'Approved').reduce((sum, e) => {
+      return sum + (Number(e.foodAmount) || 0) + (Number(e.accommodationAmount) || 0);
+    }, 0);
+    
+    const purchaseTotal = filteredTeamExpenses.filter(e => e.status === 'Approved').reduce((sum, e) => {
+      return sum + (e.purchases || []).reduce((ps: number, p: any) => ps + (Number(p.amount) || 0), 0);
+    }, 0);
+
     return {
       top: [
         { label: 'Total Income', value: `₹${totalIncome.toLocaleString()}`, icon: TrendingUp, color: 'bg-emerald-500' },
@@ -129,6 +142,11 @@ const Dashboard = ({ onNavigateToHistory }: { onNavigateToHistory: () => void })
         { label: 'Monthly Burn Rate', value: `₹${Math.round(monthlyBurnRate).toLocaleString()}`, sub: `${runwayMonths.toFixed(1)} mo runway`, icon: Flame, color: 'bg-orange-500' },
         { label: 'Budget Used', value: `${budgetUsedPercent.toFixed(1)}%`, sub: `of ₹${monthlyBudget.toLocaleString()}`, icon: Percent, color: budgetUsedPercent > 80 ? 'bg-red-500' : 'bg-emerald-500' },
         { label: 'Emp. Advances', value: `₹${empAdvances.toLocaleString()}`, sub: `${pendingSettlements} pending`, icon: Wallet, color: 'bg-purple-500' },
+      ],
+      expenseBreakdown: [
+        { label: 'Travel Allowance', value: `₹${travelTotal.toLocaleString()}`, icon: TrendingUp, color: 'bg-blue-500' },
+        { label: 'Food & Accommodation', value: `₹${foodAccTotal.toLocaleString()}`, icon: Activity, color: 'bg-orange-500' },
+        { label: 'Purchases / Vendors', value: `₹${purchaseTotal.toLocaleString()}`, icon: CreditCard, color: 'bg-emerald-500' },
       ],
       alerts: [
         ...(pendingCustomerPayments > 0 ? [{ type: 'warning', msg: `${pendingSales.length} pending customer payments totaling ₹${pendingCustomerPayments.toLocaleString()}` }] : []),
@@ -272,6 +290,23 @@ const Dashboard = ({ onNavigateToHistory }: { onNavigateToHistory: () => void })
                   </p>
                   <h4 className={`text-xl font-black ${stat.label === 'Budget Used' && parseFloat(stat.value) > 80 ? 'text-red-600' : 'text-slate-800'} tracking-tight`}>{stat.value}</h4>
                   <p className="text-slate-400 font-medium text-xs mt-1">{stat.sub}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Third Row: Expense Breakdown */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
+            {financeMetrics.expenseBreakdown.map((stat, i) => (
+              <div key={i} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-slate-300 transition-colors">
+                <div className={`absolute -right-4 -top-4 opacity-5 ${stat.color.replace('bg-', 'text-')} group-hover:scale-110 transition-transform`}>
+                  <stat.icon size={100} />
+                </div>
+                <div className="relative z-10">
+                  <p className="text-slate-500 font-bold text-xs uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <stat.icon size={14} className={stat.color.replace('bg-', 'text-')} /> {stat.label}
+                  </p>
+                  <h4 className="text-xl font-black text-slate-800 tracking-tight">{stat.value}</h4>
                 </div>
               </div>
             ))}
