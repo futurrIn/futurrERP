@@ -154,6 +154,10 @@ const ExpenseForm = ({ editData, onComplete, onNew }: any) => {
     } else {
        delete data.advance_id;
     }
+    
+    // Remove frontend-only fields
+    delete data.expenseType;
+    
     mutation.mutate(data);
   };
 
