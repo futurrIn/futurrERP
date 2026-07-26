@@ -126,11 +126,18 @@ const ExpenseForm = ({ editData, onComplete, onNew }: any) => {
   const handleNewSubmission = () => {
     if (onNew) {
       onNew();
-    } else {
-      reset();
-      setFile(null);
-      setIsSubmitted(false);
     }
+    reset({
+      date: new Date().toISOString().slice(0, 16),
+      trips: [],
+      foodType: [],
+      foodAmount: 0,
+      accommodationAmount: 0,
+      accommodationDays: 0,
+      purchases: []
+    });
+    setFile(null);
+    setIsSubmitted(false);
   };
 
   const publicModes = ['Bus', 'Auto', 'Cab', 'Train', 'Flight'];
