@@ -720,5 +720,61 @@ export const api = {
       .single();
     if (error) throw error;
     return updated;
+  },
+
+  // --- Investors / Capital ---
+  getInvestors: async () => {
+    const { data, error } = await supabase
+      .from('investors')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  createInvestor: async (investor: any) => {
+    const { data, error } = await supabase
+      .from('investors')
+      .insert([investor])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  getCapitalTransactions: async () => {
+    const { data, error } = await supabase
+      .from('capital_transactions')
+      .select('*, investors(*)')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  createInvestment: async (investment: any) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { addLiability, ...capitalData } = investment;
+
+    const { data, error } = await supabase
+      .from('capital_transactions')
+      .insert([{ ...capitalData, created_by: user?.id }])
+      .select('*, investors(*)')
+      .single();
+    if (error) throw error;
+
+    // If it's a loan or requires repayment, create a liability
+    if (addLiability) {
+      await supabase.from('liabilities').insert([{
+        title: `Loan from ${data.investors?.name || 'Investor'}`,
+        category: 'Loan Repayments',
+        amount: data.amount,
+        due_date: investment.due_date || new Date().toISOString().split('T')[0],
+        status: 'Pending',
+        notes: `Linked to Capital Transaction #${data.id}`,
+        created_by: user?.id
+      }]);
+    }
+
+    return data;
   }
 };

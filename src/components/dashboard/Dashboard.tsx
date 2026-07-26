@@ -16,7 +16,8 @@ import {
   AlertCircle,
   FileWarning,
   Percent,
-  Flame
+  Flame,
+  PiggyBank
 } from 'lucide-react';
 import { format, subDays, isAfter, isPast, differenceInMonths } from 'date-fns';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -42,6 +43,12 @@ const Dashboard = ({ onNavigateToHistory }: { onNavigateToHistory: () => void })
   const { data: liabilities = [] } = useQuery({
     queryKey: ['liabilities'],
     queryFn: api.getLiabilities,
+    enabled: ['Admin', 'Accountant'].includes(profile?.role || '')
+  });
+
+  const { data: capital = [] } = useQuery({
+    queryKey: ['capital_transactions'],
+    queryFn: api.getCapitalTransactions,
     enabled: ['Admin', 'Accountant'].includes(profile?.role || '')
   });
 
@@ -83,7 +90,10 @@ const Dashboard = ({ onNavigateToHistory }: { onNavigateToHistory: () => void })
     const empAdvances = allAdvances.reduce((sum, a) => sum + (a.remaining_amount || 0), 0);
     const pendingSettlements = allAdvances.filter(a => a.remaining_amount > 0 && a.status !== 'Cancelled').length;
     
-    const cashAvailable = totalIncome - totalExp - empAdvances;
+    // Capital Injected
+    const totalCapitalRaised = capital.reduce((sum, c: any) => sum + (c.amount || 0), 0);
+
+    const cashAvailable = totalIncome + totalCapitalRaised - totalExp - empAdvances;
 
     // Pending Customer Payments
     const pendingSales = sales.filter((s:any) => s.status !== 'Paid');
@@ -131,12 +141,13 @@ const Dashboard = ({ onNavigateToHistory }: { onNavigateToHistory: () => void })
 
     return {
       top: [
-        { label: 'Total Income', value: `₹${totalIncome.toLocaleString()}`, icon: TrendingUp, color: 'bg-emerald-500' },
-        { label: 'Total Expenses', value: `₹${totalExp.toLocaleString()}`, icon: TrendingDown, color: 'bg-rose-500' },
-        { label: 'Net Profit', value: `₹${netProfit.toLocaleString()}`, icon: Activity, color: 'bg-indigo-600' },
         { label: 'Cash Available', value: `₹${cashAvailable.toLocaleString()}`, icon: IndianRupee, color: 'bg-blue-500' },
+        { label: 'Total Income', value: `₹${totalIncome.toLocaleString()}`, icon: TrendingUp, color: 'bg-emerald-500' },
+        { label: 'Total Capital Raised', value: `₹${totalCapitalRaised.toLocaleString()}`, icon: PiggyBank, color: 'bg-indigo-500' },
+        { label: 'Total Expenses', value: `₹${totalExp.toLocaleString()}`, icon: TrendingDown, color: 'bg-rose-500' },
       ],
       second: [
+        { label: 'Net Profit', value: `₹${netProfit.toLocaleString()}`, sub: 'Income - Expenses', icon: Activity, color: 'bg-indigo-600' },
         { label: 'Pending Sales', value: `₹${pendingCustomerPayments.toLocaleString()}`, sub: `${pendingSales.length} projects`, icon: Clock, color: 'bg-amber-500' },
         { label: 'Liabilities', value: `₹${totalLiabilities.toLocaleString()}`, sub: `₹${overdueLiabilities.toLocaleString()} overdue`, icon: CreditCard, color: 'bg-rose-600' },
         { label: 'Monthly Burn Rate', value: `₹${Math.round(monthlyBurnRate).toLocaleString()}`, sub: `${runwayMonths.toFixed(1)} mo runway`, icon: Flame, color: 'bg-orange-500' },

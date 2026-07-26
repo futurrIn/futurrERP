@@ -19,7 +19,8 @@ import {
   PhoneCall,
   Calendar,
   Briefcase,
-  FileText
+  FileText,
+  PiggyBank
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -59,6 +60,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
       { id: 'customers', label: 'Customers', icon: Users, group: 'Accounts' },
       { id: 'payments', label: 'Payments & Receipts', icon: Receipt, group: 'Accounts' },
       { id: 'liabilities', label: 'Liabilities', icon: CreditCard, group: 'Accounts' },
+      { id: 'capital', label: 'Capital & Lenders', icon: PiggyBank, group: 'Accounts' },
       { id: 'reports', label: 'Reports', icon: FilePlus, group: 'Accounts' },
 
       { id: 'sales-dashboard', label: 'Sales Dashboard', icon: Target, group: 'Sales' },
@@ -81,6 +83,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
       { id: 'customers', label: 'Customers', icon: Users },
       { id: 'payments', label: 'Payments & Receipts', icon: Receipt },
       { id: 'liabilities', label: 'Liabilities', icon: CreditCard },
+      { id: 'capital', label: 'Capital & Lenders', icon: PiggyBank },
       { id: 'reports', label: 'Reports', icon: FilePlus },
       { id: 'employee-advances', label: 'Employee Advances', icon: Wallet },
       { id: 'expense-generator', label: 'My Expense', icon: FilePlus },

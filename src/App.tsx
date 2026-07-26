@@ -22,6 +22,9 @@ import CustomerManager from './components/sales/CustomerManager';
 import CustomerProfile from './components/sales/CustomerProfile';
 import PaymentManager from './components/sales/PaymentManager';
 import LiabilityManager from './components/liabilities/LiabilityManager';
+import InvestorManager from './components/capital/InvestorManager';
+import InvestorProfile from './components/capital/InvestorProfile';
+import NewInvestmentForm from './components/capital/NewInvestmentForm';
 import ReportsView from './components/reports/ReportsView';
 import SalesDashboard from './components/sales/SalesDashboard';
 import SalesActivityForm from './components/sales/SalesActivityForm';
@@ -48,6 +51,7 @@ const AppContent: React.FC = () => {
   const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
+  const [selectedInvestorId, setSelectedInvestorId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -135,6 +139,16 @@ const AppContent: React.FC = () => {
         return <PaymentManager defaultSaleId={selectedSaleId} />;
       case 'liabilities':
         return <LiabilityManager />;
+      case 'capital':
+        return <InvestorManager onInvestorSelect={(id) => {
+          setSelectedInvestorId(id);
+          setActiveTab('investor-profile');
+        }} onNewInvestment={() => setActiveTab('new-investment')} />;
+      case 'investor-profile':
+        if (!selectedInvestorId) return <InvestorManager onNewInvestment={() => setActiveTab('new-investment')} />;
+        return <InvestorProfile investorId={selectedInvestorId} onBack={() => setActiveTab('capital')} />;
+      case 'new-investment':
+        return <NewInvestmentForm onBack={() => setActiveTab('capital')} />;
       case 'reports':
         return <ReportsView />;
       case 'sales-dashboard':
