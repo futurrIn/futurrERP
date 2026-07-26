@@ -40,6 +40,8 @@ const Register = ({ onBack, onComplete }: any) => {
   const roles = [
     { id: 'Admin', label: 'Company Admin', desc: 'Full control over company settings and all receipts.' },
     { id: 'Manager', label: 'Manager', desc: 'Can manage and view all receipts in their department.' },
+    { id: 'Sales Manager', label: 'Sales Manager', desc: 'Full access to CRM, can assign leads and view team performance.' },
+    { id: 'Sales Executive', label: 'Sales Executive', desc: 'Can manage own leads, activities, and follow-ups.' },
     { id: 'Accountant', label: 'Accountant', desc: 'Can view and export financial data and reports.' },
     { id: 'Employee', label: 'Employee', desc: 'Can generate receipts and view their own history.' }
   ];

@@ -5,219 +5,218 @@ import {
   LayoutDashboard, 
   Users, 
   TrendingUp, 
-  Calendar,
   History,
   Clock,
-  Car,
   ShoppingBag,
   TrendingDown,
   Activity,
-  CreditCard
+  CreditCard,
+  Wallet,
+  IndianRupee,
+  AlertCircle,
+  FileWarning,
+  Percent,
+  Flame
 } from 'lucide-react';
-import { format, subDays, startOfMonth, endOfMonth, isAfter } from 'date-fns';
+import { format, subDays, isAfter, isPast, differenceInMonths } from 'date-fns';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const Dashboard = ({ onNavigateToHistory }: { onNavigateToHistory: () => void }) => {
   const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: api.getProfile });
-  const { data: receipts = [] } = useQuery({ queryKey: ['receipts'], queryFn: api.getReceipts });
+  const { data: payments = [] } = useQuery({ queryKey: ['payments'], queryFn: () => api.getPayments() });
   const { data: expenses = [] } = useQuery({ queryKey: ['expenses'], queryFn: api.getExpenses });
+  const { data: sales = [] } = useQuery({ queryKey: ['sales'], queryFn: api.getSales });
   
-  // For Manager, Admin, Accountant
   const { data: teamExpenses = [] } = useQuery({ 
     queryKey: ['team-expenses'], 
     queryFn: api.getTeamExpenses,
-    enabled: ['Manager', 'Admin', 'Accountant'].includes(profile?.role)
+    enabled: ['Manager', 'Admin', 'Accountant'].includes(profile?.role || '')
+  });
+
+  const { data: allAdvances = [] } = useQuery({
+    queryKey: ['all-advances'],
+    queryFn: api.getAllAdvances,
+    enabled: ['Admin', 'Accountant'].includes(profile?.role || '')
+  });
+
+  const { data: liabilities = [] } = useQuery({
+    queryKey: ['liabilities'],
+    queryFn: api.getLiabilities,
+    enabled: ['Admin', 'Accountant'].includes(profile?.role || '')
+  });
+
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: api.getSettings
   });
 
   const isFinanceRole = profile?.role === 'Admin' || profile?.role === 'Accountant';
   const isManager = profile?.role === 'Manager';
-  const isEmployee = profile?.role === 'Employee';
 
-  const [timeframe, setTimeframe] = useState<'7d' | '1m' | '6m' | 'all'>('7d');
-  const [activeChart, setActiveChart] = useState<'revenue' | 'expenses' | 'both'>('revenue');
+  const [timeframe, setTimeframe] = useState<'7d' | '1m' | '6m' | 'all'>('1m');
+  const [activeChart, setActiveChart] = useState<'revenue' | 'expenses' | 'both'>('both');
 
-  // Filter data by timeframe
+  // Time filters
   const filterByTimeframe = (items: any[], dateField: string = 'date') => {
     if (timeframe === 'all') return items;
-    
     const now = new Date();
     let cutoff = new Date();
-    
     if (timeframe === '7d') cutoff = subDays(now, 7);
     if (timeframe === '1m') cutoff = subDays(now, 30);
     if (timeframe === '6m') cutoff = subDays(now, 180);
-
-    return items.filter(item => isAfter(new Date(item[dateField] || item.createdAt), cutoff));
+    return items.filter(item => isAfter(new Date(item[dateField] || item.createdAt || item.created_at), cutoff));
   };
 
-  // Safe Date parsing helper for rendering without crashes
-  const formatDateSafe = (dateStr: any) => {
-    try {
-      if (!dateStr) return 'N/A';
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return 'N/A';
-      return format(d, 'MMM d');
-    } catch (err) {
-      return 'N/A';
-    }
-  };
-
-  // Extract exact team expenses the manager is authorized to review (no self-claims or other managers)
-  const managerTeamExpenses = useMemo(() => {
-    if (!isManager) return [];
-    return teamExpenses.filter((exp: any) => {
-      const empDept = exp.employeeDepartment || exp.employee?.department || 'General';
-      const isEmpManager = exp.employeeRole === 'Manager' || exp.employee?.role === 'Manager';
-      return empDept === profile?.department && !isEmpManager && exp.createdBy !== profile?.id;
-    });
-  }, [teamExpenses, profile, isManager]);
-
-  const filteredReceipts = useMemo(() => filterByTimeframe(receipts), [receipts, timeframe]);
+  const filteredPayments = useMemo(() => filterByTimeframe(payments, 'created_at'), [payments, timeframe]);
   const filteredTeamExpenses = useMemo(() => filterByTimeframe(teamExpenses), [teamExpenses, timeframe]);
-  const filteredManagerTeamExpenses = useMemo(() => filterByTimeframe(managerTeamExpenses), [managerTeamExpenses, timeframe]);
-  const filteredExpenses = useMemo(() => filterByTimeframe(expenses), [expenses, timeframe]);
   
-  // Calculate Stats
-  const stats = useMemo(() => {
-    if (isFinanceRole) {
-      const totalRev = filteredReceipts.reduce((sum, r) => sum + (r.amount || 0), 0);
-      const totalExp = filteredTeamExpenses.filter(e => e.status === 'Approved').reduce((sum, e) => sum + (e.totalAmount || 0), 0);
-      const pendingExp = teamExpenses.filter(e => e.status === 'Pending').length;
-      
-      return [
-        { label: 'Total Revenue', value: `₹${totalRev.toLocaleString()}`, icon: TrendingUp, trend: 'Inflow', color: 'bg-emerald-500' },
-        { label: 'Total Claims', value: `₹${totalExp.toLocaleString()}`, icon: TrendingDown, trend: 'Outflow', color: 'bg-red-500' },
-        { label: 'Pending Approvals', value: pendingExp.toString(), icon: Clock, trend: 'Action Needed', color: 'bg-amber-500' },
-        { label: 'Receipts Issued', value: filteredReceipts.length.toString(), icon: History, trend: 'Volume', color: 'bg-indigo-600' }
-      ];
-    } else if (isManager) {
-      const pendingExp = managerTeamExpenses.filter(e => e.status === 'Pending').length;
-      const teamTotalExp = filteredManagerTeamExpenses.filter(e => e.status === 'Approved').reduce((sum, e) => sum + (e.totalAmount || 0), 0);
-      const myTotalExp = filteredExpenses.reduce((sum, e) => sum + (e.totalAmount || 0), 0);
-      return [
-        { label: 'Team Pending', value: pendingExp.toString(), icon: Users, trend: 'Review', color: 'bg-amber-500' },
-        { label: 'Team Approved Spend', value: `₹${teamTotalExp.toLocaleString()}`, icon: TrendingDown, trend: 'Outflow', color: 'bg-red-500' },
-        { label: 'My Claims', value: `₹${myTotalExp.toLocaleString()}`, icon: TrendingUp, trend: 'Total', color: 'bg-indigo-600' },
-        { label: 'My Submissions', value: filteredExpenses.length.toString(), icon: LayoutDashboard, trend: 'Volume', color: 'bg-emerald-500' }
-      ];
-    } else {
-      const total = filteredExpenses.filter(e => e.status === 'Approved').reduce((sum, exp) => sum + (exp.totalAmount || 0), 0);
-      const pending = filteredExpenses.filter(e => e.status === 'Pending').length;
-      return [
-        { label: 'Total Claims', value: `₹${total.toLocaleString()}`, icon: TrendingUp, trend: 'Overall', color: 'bg-indigo-600' },
-        { label: 'Pending Approval', value: pending.toString(), icon: Clock, trend: 'Active', color: 'bg-amber-500' },
-        { label: 'Active Submissions', value: filteredExpenses.length.toString(), icon: LayoutDashboard, trend: 'Volume', color: 'bg-emerald-500' },
-      ];
-    }
-  }, [isFinanceRole, isManager, filteredReceipts, filteredTeamExpenses, filteredManagerTeamExpenses, filteredExpenses, teamExpenses, managerTeamExpenses]);
+  // Finance Metrics Calculation
+  const financeMetrics = useMemo(() => {
+    if (!isFinanceRole) return null;
+
+    // Top Row Metrics
+    const totalIncome = filteredPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const totalExp = filteredTeamExpenses.filter(e => e.status === 'Approved').reduce((sum, e) => sum + (e.totalAmount || 0), 0);
+    const netProfit = totalIncome - totalExp;
+    
+    // Employee Advances
+    const empAdvances = allAdvances.reduce((sum, a) => sum + (a.remaining_amount || 0), 0);
+    const pendingSettlements = allAdvances.filter(a => a.remaining_amount > 0 && a.status !== 'Cancelled').length;
+    
+    const cashAvailable = totalIncome - totalExp - empAdvances;
+
+    // Pending Customer Payments
+    const pendingSales = sales.filter((s:any) => s.status !== 'Paid');
+    const totalSalesAmount = pendingSales.reduce((sum, s:any) => sum + (s.final_amount || 0), 0);
+    const totalPaidAgainstPending = payments
+      .filter((p:any) => pendingSales.some((s:any) => s.id === p.sale_id))
+      .reduce((sum, p:any) => sum + (p.amount || 0), 0);
+    const pendingCustomerPayments = totalSalesAmount - totalPaidAgainstPending;
+    const overdueCustomerPayments = pendingSales.filter((s:any) => isPast(new Date(s.created_at))).length; // Simplification
+
+    // Liabilities
+    const totalLiabilities = liabilities.filter((l:any) => l.status === 'Pending').reduce((sum, l:any) => sum + l.amount, 0);
+    const overdueLiabilities = liabilities.filter((l:any) => l.status === 'Pending' && isPast(new Date(l.due_date))).reduce((sum, l:any) => sum + l.amount, 0);
+
+    // Burn Rate (Average monthly approved expenses)
+    const approvedExpenses = teamExpenses.filter(e => e.status === 'Approved');
+    const oldestExpDate = approvedExpenses.length > 0 ? new Date(Math.min(...approvedExpenses.map(e => new Date(e.createdAt).getTime()))) : new Date();
+    let monthsDiff = differenceInMonths(new Date(), oldestExpDate) || 1;
+    if (monthsDiff < 1) monthsDiff = 1;
+    const totalAllTimeExp = approvedExpenses.reduce((sum, e) => sum + (e.totalAmount || 0), 0);
+    
+    const monthlyBurnRate = totalAllTimeExp / monthsDiff;
+    const runwayMonths = monthlyBurnRate > 0 ? (cashAvailable / monthlyBurnRate) : 0;
+
+    // Budget
+    const monthlyBudget = settings?.monthlyBudget || 0;
+    const currentMonthExpenses = teamExpenses
+      .filter(e => e.status === 'Approved' && isAfter(new Date(e.createdAt), subDays(new Date(), 30)))
+      .reduce((sum, e) => sum + (e.totalAmount || 0), 0);
+    
+    const budgetUsedPercent = monthlyBudget > 0 ? (currentMonthExpenses / monthlyBudget) * 100 : 0;
+
+    return {
+      top: [
+        { label: 'Total Income', value: `₹${totalIncome.toLocaleString()}`, icon: TrendingUp, color: 'bg-emerald-500' },
+        { label: 'Total Expenses', value: `₹${totalExp.toLocaleString()}`, icon: TrendingDown, color: 'bg-rose-500' },
+        { label: 'Net Profit', value: `₹${netProfit.toLocaleString()}`, icon: Activity, color: 'bg-indigo-600' },
+        { label: 'Cash Available', value: `₹${cashAvailable.toLocaleString()}`, icon: IndianRupee, color: 'bg-blue-500' },
+      ],
+      second: [
+        { label: 'Pending Sales', value: `₹${pendingCustomerPayments.toLocaleString()}`, sub: `${pendingSales.length} projects`, icon: Clock, color: 'bg-amber-500' },
+        { label: 'Liabilities', value: `₹${totalLiabilities.toLocaleString()}`, sub: `₹${overdueLiabilities.toLocaleString()} overdue`, icon: CreditCard, color: 'bg-rose-600' },
+        { label: 'Monthly Burn Rate', value: `₹${Math.round(monthlyBurnRate).toLocaleString()}`, sub: `${runwayMonths.toFixed(1)} mo runway`, icon: Flame, color: 'bg-orange-500' },
+        { label: 'Budget Used', value: `${budgetUsedPercent.toFixed(1)}%`, sub: `of ₹${monthlyBudget.toLocaleString()}`, icon: Percent, color: budgetUsedPercent > 80 ? 'bg-red-500' : 'bg-emerald-500' },
+        { label: 'Emp. Advances', value: `₹${empAdvances.toLocaleString()}`, sub: `${pendingSettlements} pending`, icon: Wallet, color: 'bg-purple-500' },
+      ],
+      alerts: [
+        ...(pendingCustomerPayments > 0 ? [{ type: 'warning', msg: `${pendingSales.length} pending customer payments totaling ₹${pendingCustomerPayments.toLocaleString()}` }] : []),
+        ...(overdueLiabilities > 0 ? [{ type: 'error', msg: `₹${overdueLiabilities.toLocaleString()} in overdue liabilities require immediate attention.` }] : []),
+        ...(teamExpenses.filter(e => e.status === 'Pending').length > 0 ? [{ type: 'info', msg: `${teamExpenses.filter(e => e.status === 'Pending').length} expense claims pending approval.` }] : []),
+        ...(budgetUsedPercent > 80 ? [{ type: 'error', msg: `Budget alert: ${budgetUsedPercent.toFixed(1)}% of monthly budget utilized.` }] : []),
+        ...(pendingSettlements > 0 ? [{ type: 'warning', msg: `${pendingSettlements} employee advances awaiting settlement.` }] : []),
+      ]
+    };
+  }, [isFinanceRole, filteredPayments, filteredTeamExpenses, teamExpenses, allAdvances, sales, payments, liabilities, settings]);
 
   // Generate Chart Data
   const chartData = useMemo(() => {
-    let grouped: { [key: string]: { revenue: number, expenses: number, team: number, personal: number } } = {};
-    const keysInOrder: string[] = [];
+    let grouped: { [key: string]: { name: string, revenue: number, expenses: number, sortKey: number } } = {};
+    const isMonths = timeframe === '6m' || timeframe === 'all';
+    const now = new Date();
 
-    // Determine buckets (days vs months)
-    if (timeframe === 'all' || timeframe === '6m') {
-      // Group by month
-      const processItem = (item: any, type: 'revenue' | 'expenses' | 'team' | 'personal') => {
-        const d = new Date(item.date || item.createdAt);
+    if (timeframe === '7d') {
+      for (let i = 6; i >= 0; i--) {
+        const d = subDays(now, i);
+        const key = format(d, 'dd MMM');
+        grouped[key] = { name: key, revenue: 0, expenses: 0, sortKey: d.getTime() };
+      }
+    } else if (timeframe === '1m') {
+      for (let i = 29; i >= 0; i--) {
+        const d = subDays(now, i);
+        const key = format(d, 'dd MMM');
+        grouped[key] = { name: key, revenue: 0, expenses: 0, sortKey: d.getTime() };
+      }
+    } else if (timeframe === '6m') {
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const key = format(d, 'MMM yyyy');
-        if (!grouped[key]) {
-          grouped[key] = { revenue: 0, expenses: 0, team: 0, personal: 0 };
-          if (!keysInOrder.includes(key)) keysInOrder.push(key);
-        }
-        grouped[key][type] += (item.amount || item.totalAmount || 0);
-      };
-
-      if (isFinanceRole) {
-        if (activeChart === 'revenue' || activeChart === 'both') filteredReceipts.forEach(r => processItem(r, 'revenue'));
-        if (activeChart === 'expenses' || activeChart === 'both') filteredTeamExpenses.forEach(e => processItem(e, 'expenses'));
-      } else if (isManager) {
-        filteredManagerTeamExpenses.forEach(e => processItem(e, 'team'));
-        expenses.forEach(e => processItem(e, 'personal'));
-      } else {
-        expenses.forEach(e => processItem(e, 'expenses'));
+        grouped[key] = { name: key, revenue: 0, expenses: 0, sortKey: d.getTime() };
+      }
+    } else if (timeframe === 'all') {
+      let oldest = new Date(now.getFullYear(), 0, 1); // Default to start of current year
+      [...filteredPayments, ...filteredTeamExpenses.filter(e => e.status === 'Approved')].forEach(item => {
+        const d = new Date(item.date || item.createdAt || item.created_at);
+        if (d < oldest) oldest = d;
+      });
+      let current = new Date(oldest.getFullYear(), oldest.getMonth(), 1);
+      const end = new Date(now.getFullYear(), now.getMonth(), 1);
+      
+      // Ensure at least 2 points for a line chart
+      if (current.getTime() === end.getTime()) {
+        current = new Date(oldest.getFullYear(), oldest.getMonth() - 1, 1);
       }
       
-      keysInOrder.sort((a, b) => new Date(`1 ${a}`).getTime() - new Date(`1 ${b}`).getTime());
-      return keysInOrder.map(name => ({ name, ...grouped[name] }));
-    } else {
-      // Group by day for 7d and 1m
-      const numDays = timeframe === '7d' ? 7 : 30;
-      const days = Array.from({ length: numDays }, (_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        return format(d, 'yyyy-MM-dd');
-      }).reverse();
+      while (current <= end) {
+        const key = format(current, 'MMM yyyy');
+        grouped[key] = { name: key, revenue: 0, expenses: 0, sortKey: current.getTime() };
+        current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
+      }
+    }
 
-      return days.map(dateStr => {
-        const dateObj = new Date(dateStr);
-        let revTotal = 0;
-        let expTotal = 0;
-        let teamTotal = 0;
-        let personalTotal = 0;
-
-        if (isFinanceRole) {
-          if (activeChart === 'revenue' || activeChart === 'both') {
-            revTotal = filteredReceipts
-              .filter(r => format(new Date(r.date || r.createdAt), 'yyyy-MM-dd') === dateStr)
-              .reduce((sum, r) => sum + (r.amount || 0), 0);
-          }
-          if (activeChart === 'expenses' || activeChart === 'both') {
-            expTotal = filteredTeamExpenses
-              .filter(e => format(new Date(e.date || e.createdAt), 'yyyy-MM-dd') === dateStr)
-              .reduce((sum, e) => sum + (e.totalAmount || 0), 0);
-          }
-        } else if (isManager) {
-          teamTotal = filteredManagerTeamExpenses
-            .filter(e => format(new Date(e.date || e.createdAt), 'yyyy-MM-dd') === dateStr)
-            .reduce((sum, e) => sum + (e.totalAmount || 0), 0);
-          personalTotal = expenses
-            .filter(e => format(new Date(e.date || e.createdAt), 'yyyy-MM-dd') === dateStr)
-            .reduce((sum, e) => sum + (e.totalAmount || 0), 0);
-        } else {
-          expTotal = expenses
-            .filter(e => format(new Date(e.date || e.createdAt), 'yyyy-MM-dd') === dateStr)
-            .reduce((sum, e) => sum + (e.totalAmount || 0), 0);
-        }
-
-        return {
-          name: format(dateObj, 'dd MMM'),
-          revenue: revTotal,
-          expenses: expTotal,
-          team: teamTotal,
-          personal: personalTotal
+    const processItem = (item: any, type: 'revenue' | 'expenses') => {
+      const d = new Date(item.date || item.createdAt || item.created_at);
+      const key = format(d, isMonths ? 'MMM yyyy' : 'dd MMM');
+      
+      if (!grouped[key]) {
+        grouped[key] = { 
+          name: key,
+          revenue: 0, 
+          expenses: 0, 
+          sortKey: isMonths ? new Date(`1 ${key}`).getTime() : d.getTime() 
         };
-      });
-    }
-  }, [isFinanceRole, isManager, activeChart, filteredReceipts, filteredTeamExpenses, filteredManagerTeamExpenses, expenses, timeframe]);
+      }
+      grouped[key][type] += (item.amount || item.totalAmount || 0);
+    };
 
-  const recentItems = useMemo(() => {
-    let data = [];
-    if (isFinanceRole) {
-      if (activeChart === 'revenue') data = filteredReceipts;
-      else if (activeChart === 'expenses') data = filteredTeamExpenses;
-      else data = [...filteredReceipts, ...filteredTeamExpenses];
-    } else if (isManager) {
-      data = filteredManagerTeamExpenses;
-    } else {
-      data = filteredExpenses;
-    }
-    return [...data].sort((a, b) => new Date(b.date || b.createdAt).getTime() - new Date(a.date || a.createdAt).getTime()).slice(0, 5);
-  }, [isFinanceRole, isManager, activeChart, filteredReceipts, filteredTeamExpenses, filteredManagerTeamExpenses, filteredExpenses]);
+    filteredPayments.forEach(p => processItem(p, 'revenue'));
+    filteredTeamExpenses.filter(e => e.status === 'Approved').forEach(e => processItem(e, 'expenses'));
+    
+    return Object.values(grouped).sort((a, b) => a.sortKey - b.sortKey).map(({ name, revenue, expenses }) => ({ name, revenue, expenses }));
+  }, [filteredPayments, filteredTeamExpenses, timeframe]);
 
   return (
     <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 px-4 md:px-0 pb-20">
-      {/* Welcome Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">
-            {isFinanceRole ? 'Finance Dashboard' : 'Dashboard'}
+            {isFinanceRole ? 'Advanced Finance Dashboard' : 'Dashboard'}
           </h2>
-          <p className="text-slate-500 font-medium text-sm md:text-base">Welcome back, {profile?.fullName || 'User'}</p>
+          <p className="text-slate-500 font-medium text-sm md:text-base">Real-time overview of financial health.</p>
         </div>
         
-        {(isFinanceRole || isManager) && (
+        {isFinanceRole && (
           <div className="flex items-center gap-2 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm self-start">
             {[
               { id: '7d', label: '7D' },
@@ -241,173 +240,142 @@ const Dashboard = ({ onNavigateToHistory }: { onNavigateToHistory: () => void })
         )}
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        {stats.map((stat, i) => (
-          <div key={i} className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-indigo-500/5 transition-all group">
-            <div className="flex items-center justify-between mb-4 md:mb-6">
-              <div className={`p-3 md:p-4 rounded-2xl ${stat.color} text-white shadow-lg group-hover:scale-110 transition-transform`}>
-                <stat.icon size={20} className="md:w-6 md:h-6" />
-              </div>
-              <div className="flex items-center gap-1 text-slate-500 font-bold text-xs bg-slate-50 px-2 py-1 rounded-lg">
-                {stat.trend}
-              </div>
-            </div>
-            <div>
-              <p className="text-slate-500 font-bold text-xs uppercase tracking-wider mb-1">{stat.label}</p>
-              <h4 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">{stat.value}</h4>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Charts & Activity Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-        <div className="lg:col-span-2 bg-white p-6 md:p-8 rounded-[2rem] md:rounded-3xl border border-slate-200 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
-            <h3 className="text-lg md:text-xl font-black text-slate-800">
-              {isFinanceRole ? (activeChart === 'revenue' ? 'Revenue Analytics' : activeChart === 'expenses' ? 'Expense Analytics' : 'Financial Overview') : 'Expense Trends'}
-            </h3>
-            
-            {isFinanceRole && (
-              <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-2xl border border-slate-100 self-start">
-                <button
-                  onClick={() => setActiveChart('revenue')}
-                  className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all ${
-                    activeChart === 'revenue' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
-                  }`}
-                >
-                  REVENUE
-                </button>
-                <button
-                  onClick={() => setActiveChart('expenses')}
-                  className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all ${
-                    activeChart === 'expenses' ? 'bg-white text-red-500 shadow-sm' : 'text-slate-400 hover:text-slate-600'
-                  }`}
-                >
-                  EXPENSES
-                </button>
-                <button
-                  onClick={() => setActiveChart('both')}
-                  className={`px-4 py-2 rounded-xl text-xs font-black tracking-wider transition-all ${
-                    activeChart === 'both' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
-                  }`}
-                >
-                  BOTH
-                </button>
-              </div>
-            )}
-          </div>
-          <div className="h-[250px] md:h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorTeam" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorPers" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ec4899" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 600}}
-                  dy={10}
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 600}}
-                  tickFormatter={(value) => `₹${value}`}
-                  width={60}
-                />
-                <Tooltip 
-                  contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontWeight: 'bold'}}
-                  formatter={(value: any, name: any) => [`₹${value.toLocaleString()}`, name ? String(name).charAt(0).toUpperCase() + String(name).slice(1) : 'Amount']}
-                />
-                
-                {isManager ? (
-                  <>
-                    <Area type="monotone" dataKey="team" name="Team Expenses" stroke="#6366f1" strokeWidth={4} fillOpacity={1} fill="url(#colorTeam)" />
-                    <Area type="monotone" dataKey="personal" name="My Expenses" stroke="#ec4899" strokeWidth={4} fillOpacity={1} fill="url(#colorPers)" />
-                  </>
-                ) : isFinanceRole ? (
-                  <>
-                    {(activeChart === 'revenue' || activeChart === 'both') && (
-                      <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#10b981" strokeWidth={4} fillOpacity={1} fill="url(#colorRev)" />
-                    )}
-                    {(activeChart === 'expenses' || activeChart === 'both') && (
-                      <Area type="monotone" dataKey="expenses" name="Expenses" stroke="#f43f5e" strokeWidth={4} fillOpacity={1} fill="url(#colorExp)" />
-                    )}
-                  </>
-                ) : (
-                  <Area type="monotone" dataKey="expenses" name="My Expenses" stroke="#4f46e5" strokeWidth={4} fillOpacity={1} fill="url(#colorExp)" />
-                )}
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-3xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between mb-6 md:mb-8">
-            <h3 className="text-lg md:text-xl font-black text-slate-800">Recent Activity</h3>
-            <Activity className="text-slate-300" size={20} />
-          </div>
-          <div className="space-y-4 md:space-y-6">
-            {recentItems.length === 0 ? (
-              <p className="text-center text-slate-400 py-8 font-bold text-sm">No recent activity found.</p>
-            ) : (
-              recentItems.map((item: any) => (
-                <div key={item.id} className="flex items-center justify-between group">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${
-                      item.amount ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
-                    }`}>
-                      {item.amount ? <CreditCard size={16} /> : <ShoppingBag size={16} />}
-                    </div>
-                    <div>
-                      <p className="text-sm font-black text-slate-800 line-clamp-1 max-w-[120px]">
-                        {item.studentName || item.employeeName || item.type || 'Expense'}
-                      </p>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                        {formatDateSafe(item.date || item.createdAt)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-black text-slate-800">₹{(item.amount || item.totalAmount || 0).toLocaleString()}</p>
-                    <p className={`text-[9px] font-black uppercase tracking-widest ${
-                      item.status === 'Approved' ? 'text-emerald-500' : 
-                      item.status === 'Rejected' ? 'text-red-500' : 'text-amber-500'
-                    }`}>
-                      {item.paymentMethod || item.status || 'Processed'}
-                    </p>
+      {isFinanceRole && financeMetrics ? (
+        <>
+          {/* Top Row: Key Income / Exp */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            {financeMetrics.top.map((stat, i) => (
+              <div key={i} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg transition-all group">
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`p-3 rounded-2xl ${stat.color} text-white shadow-lg group-hover:scale-110 transition-transform`}>
+                    <stat.icon size={20} />
                   </div>
                 </div>
-              ))
-            )}
+                <div>
+                  <p className="text-slate-500 font-bold text-xs uppercase tracking-wider mb-1">{stat.label}</p>
+                  <h4 className="text-2xl font-black text-slate-800 tracking-tight">{stat.value}</h4>
+                </div>
+              </div>
+            ))}
           </div>
-          <button 
-            onClick={onNavigateToHistory}
-            className="w-full mt-6 md:mt-8 py-3 md:py-4 bg-slate-50 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-100 transition-all active:scale-95 border border-slate-100"
-          >
-            View Full Log
-          </button>
+
+          {/* Second Row: Specific Metrics */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
+            {financeMetrics.second.map((stat, i) => (
+              <div key={i} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-slate-300 transition-colors">
+                <div className={`absolute -right-4 -top-4 opacity-5 ${stat.color.replace('bg-', 'text-')} group-hover:scale-110 transition-transform`}>
+                  <stat.icon size={100} />
+                </div>
+                <div className="relative z-10">
+                  <p className="text-slate-500 font-bold text-xs uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <stat.icon size={14} className={stat.color.replace('bg-', 'text-')} /> {stat.label}
+                  </p>
+                  <h4 className={`text-xl font-black ${stat.label === 'Budget Used' && parseFloat(stat.value) > 80 ? 'text-red-600' : 'text-slate-800'} tracking-tight`}>{stat.value}</h4>
+                  <p className="text-slate-400 font-medium text-xs mt-1">{stat.sub}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Bottom Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+            <div className="lg:col-span-2 bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                <div>
+                  <h3 className="text-xl font-black text-slate-800">Revenue vs Expenses</h3>
+                  <div className="flex gap-4 mt-2">
+                    <div className="flex items-center gap-1.5 text-sm font-bold text-emerald-600">
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+                      Total Income: ₹{filteredPayments.reduce((sum, p) => sum + (p.amount || 0), 0).toLocaleString()}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-sm font-bold text-rose-600">
+                      <div className="w-2.5 h-2.5 rounded-full bg-rose-500"></div>
+                      Total Expenses: ₹{filteredTeamExpenses.filter(e => e.status === 'Approved').reduce((sum, e) => sum + (e.totalAmount || 0), 0).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 600}} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 600}} tickFormatter={(value) => `₹${value}`} width={60} />
+                    <Tooltip contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontWeight: 'bold'}} />
+                    <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#10b981" strokeWidth={4} fillOpacity={1} fill="url(#colorRev)" />
+                    <Area type="monotone" dataKey="expenses" name="Expenses" stroke="#f43f5e" strokeWidth={4} fillOpacity={1} fill="url(#colorExp)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2">
+                  <AlertCircle className="text-amber-500" /> Financial Alerts
+                </h3>
+                <div className="space-y-3">
+                  {financeMetrics.alerts.length === 0 ? (
+                    <p className="text-slate-500 text-sm italic p-4 bg-slate-50 rounded-xl text-center">All clear! No pending alerts.</p>
+                  ) : (
+                    financeMetrics.alerts.map((alert, i) => (
+                      <div key={i} className={`p-4 rounded-xl border flex items-start gap-3 ${
+                        alert.type === 'error' ? 'bg-red-50 border-red-100 text-red-700' :
+                        alert.type === 'warning' ? 'bg-amber-50 border-amber-100 text-amber-700' :
+                        'bg-blue-50 border-blue-100 text-blue-700'
+                      }`}>
+                        <FileWarning size={16} className="mt-0.5 shrink-0" />
+                        <span className="text-sm font-bold">{alert.msg}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <h3 className="text-lg font-black text-slate-800 mb-4">Recent Activity</h3>
+                <div className="space-y-4">
+                  {[...filteredPayments.map(p => ({...p, _type: 'payment'})), ...filteredTeamExpenses.map(e => ({...e, _type: 'expense'}))]
+                    .sort((a,b) => new Date(b.created_at || b.createdAt).getTime() - new Date(a.created_at || a.createdAt).getTime())
+                    .slice(0, 4)
+                    .map((item, i) => (
+                      <div key={i} className="flex items-center justify-between group">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${item._type === 'payment' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
+                            {item._type === 'payment' ? <CreditCard size={16} /> : <ShoppingBag size={16} />}
+                          </div>
+                          <div>
+                            <p className="text-sm font-black text-slate-800 line-clamp-1">{item._type === 'payment' ? `Payment ${item.receipt_number}` : 'Expense Claim'}</p>
+                            <p className="text-xs font-medium text-slate-400">{format(new Date(item.created_at || item.createdAt), 'dd MMM yyyy')}</p>
+                          </div>
+                        </div>
+                        <div className={`font-black text-sm ${item._type === 'payment' ? 'text-emerald-600' : 'text-slate-800'}`}>
+                          {item._type === 'payment' ? '+' : '-'}₹{(item.amount || item.totalAmount || 0).toLocaleString()}
+                        </div>
+                      </div>
+                    ))
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="bg-white p-8 rounded-3xl border border-slate-200 text-center">
+          <h3 className="text-xl font-bold text-slate-800 mb-2">Welcome to {settings?.companyName || 'Futurr ERP'}</h3>
+          <p className="text-slate-500">Your role doesn't have access to the advanced financial dashboard.</p>
         </div>
-      </div>
+      )}
     </div>
   );
 };

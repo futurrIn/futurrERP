@@ -13,6 +13,22 @@ import ExpenseForm from './components/expenses/ExpenseForm';
 import ExpenseHistory from './components/expenses/ExpenseHistory';
 import TeamReview from './components/team/TeamReview';
 import UserManagement from './components/admin/UserManagement';
+import AdvanceManager from './components/advances/AdvanceManager';
+import AdvanceForm from './components/advances/AdvanceForm';
+import MyAdvances from './components/advances/MyAdvances';
+import NewSale from './components/sales/NewSale';
+import SalesHistory from './components/sales/SalesHistory';
+import CustomerManager from './components/sales/CustomerManager';
+import CustomerProfile from './components/sales/CustomerProfile';
+import PaymentManager from './components/sales/PaymentManager';
+import LiabilityManager from './components/liabilities/LiabilityManager';
+import ReportsView from './components/reports/ReportsView';
+import SalesDashboard from './components/sales/SalesDashboard';
+import SalesActivityForm from './components/sales/SalesActivityForm';
+import LeadManager from './components/sales/LeadManager';
+import LeadProfile from './components/sales/LeadProfile';
+import FollowUps from './components/sales/FollowUps';
+import SalesPipeline from './components/sales/SalesPipeline';
 
 import { 
   QueryClient, 
@@ -29,6 +45,9 @@ const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [editingReceipt, setEditingReceipt] = useState<any>(null);
   const [editingExpense, setEditingExpense] = useState<any>(null);
+  const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+  const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -81,7 +100,10 @@ const AppContent: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard onNavigateToHistory={() => setActiveTab(profile?.role === 'Admin' || profile?.role === 'Accountant' ? 'receipt-history' : 'expense-history')} />;
+        if (profile?.role === 'Sales Manager' || profile?.role === 'Sales Executive' || profile?.department?.toLowerCase() === 'sales') {
+          return <SalesDashboard setActiveTab={setActiveTab} />;
+        }
+        return <Dashboard onNavigateToHistory={() => setActiveTab(profile?.role === 'Admin' || profile?.role === 'Accountant' ? 'sales-history' : 'expense-history')} />;
       case 'receipt-generator':
         return (
           <ReceiptGenerator 
@@ -94,6 +116,50 @@ const AppContent: React.FC = () => {
         );
       case 'receipt-history':
         return <ReceiptHistory onEdit={handleEditReceipt} />;
+      case 'new-sale':
+        return <NewSale onComplete={() => setActiveTab('sales-history')} />;
+      case 'sales-history':
+        return <SalesHistory onNavigateToPayments={(saleId) => {
+          setSelectedSaleId(saleId);
+          setActiveTab('payments');
+        }} />;
+      case 'customers':
+        return <CustomerManager onCustomerSelect={(id) => {
+          setSelectedCustomerId(id);
+          setActiveTab('customer-profile');
+        }} />;
+      case 'customer-profile':
+        if (!selectedCustomerId) return <CustomerManager />;
+        return <CustomerProfile customerId={selectedCustomerId} onBack={() => setActiveTab('customers')} />;
+      case 'payments':
+        return <PaymentManager defaultSaleId={selectedSaleId} />;
+      case 'liabilities':
+        return <LiabilityManager />;
+      case 'reports':
+        return <ReportsView />;
+      case 'sales-dashboard':
+        return <SalesDashboard setActiveTab={setActiveTab} />;
+      case 'sales-activities':
+        return <SalesActivityForm />;
+      case 'sales-leads':
+        return <LeadManager setActiveTab={setActiveTab} setSelectedLeadId={setSelectedLeadId} />;
+      case 'sales-pipeline':
+        return <SalesPipeline setActiveTab={setActiveTab} setSelectedLeadId={setSelectedLeadId} />;
+      case 'lead-profile':
+        if (!selectedLeadId) return <LeadManager setActiveTab={setActiveTab} setSelectedLeadId={setSelectedLeadId} />;
+        return <LeadProfile leadId={selectedLeadId} setActiveTab={setActiveTab} />;
+      case 'sales-followups':
+        return <FollowUps setActiveTab={setActiveTab} setSelectedLeadId={setSelectedLeadId} />;
+      case 'sales-meetings':
+      case 'sales-quotations':
+        return (
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <h2 className="text-2xl font-black text-slate-800 mb-2">Coming Soon</h2>
+              <p className="text-slate-500 font-medium">This module is under development.</p>
+            </div>
+          </div>
+        );
       case 'expense-generator':
         return (
           <ExpenseForm 
@@ -107,6 +173,14 @@ const AppContent: React.FC = () => {
         );
       case 'expense-history':
         return <ExpenseHistory onEdit={handleEditExpense} />;
+      case 'employee-advances':
+        if (profile?.role !== 'Admin' && profile?.role !== 'Accountant') return <Dashboard onNavigateToHistory={() => setActiveTab('expense-history')} />;
+        return <AdvanceManager onNewAdvance={() => setActiveTab('new-advance')} />;
+      case 'new-advance':
+        if (profile?.role !== 'Admin' && profile?.role !== 'Accountant') return <Dashboard onNavigateToHistory={() => setActiveTab('expense-history')} />;
+        return <AdvanceForm onBack={() => setActiveTab('employee-advances')} />;
+      case 'my-advances':
+        return <MyAdvances />;
       case 'team':
         if (profile?.role === 'Employee') return <Dashboard onNavigateToHistory={() => setActiveTab('expense-history')} />;
         return <TeamReview />;

@@ -11,7 +11,15 @@ import {
   Menu,
   X,
   FilePlus,
-  Users
+  Users,
+  Wallet,
+  CreditCard,
+  Target,
+  Activity,
+  PhoneCall,
+  Calendar,
+  Briefcase,
+  FileText
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -45,34 +53,66 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
 
   if (profile?.role === 'Admin') {
     menuItems = [
-      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { id: 'receipt-generator', label: 'New Receipt', icon: FilePlus },
-      { id: 'receipt-history', label: 'Receipt History', icon: History },
-      { id: 'team', label: 'Team', icon: Users },
-      { id: 'users', label: 'User Management', icon: Users },
-      { id: 'settings', label: 'Admin Settings', icon: SettingsIcon }
+      { id: 'dashboard', label: 'Company Overview', icon: LayoutDashboard },
+      
+      { id: 'sales-history', label: 'Sales History', icon: History, group: 'Accounts' },
+      { id: 'customers', label: 'Customers', icon: Users, group: 'Accounts' },
+      { id: 'payments', label: 'Payments & Receipts', icon: Receipt, group: 'Accounts' },
+      { id: 'liabilities', label: 'Liabilities', icon: CreditCard, group: 'Accounts' },
+      { id: 'reports', label: 'Reports', icon: FilePlus, group: 'Accounts' },
+
+      { id: 'sales-dashboard', label: 'Sales Dashboard', icon: Target, group: 'Sales' },
+      { id: 'sales-leads', label: 'Lead Manager', icon: Users, group: 'Sales' },
+      { id: 'sales-pipeline', label: 'Pipeline', icon: Briefcase, group: 'Sales' },
+      { id: 'sales-followups', label: 'Follow-ups', icon: PhoneCall, group: 'Sales' },
+      { id: 'sales-quotations', label: 'Quotations', icon: FileText, group: 'Sales' },
+
+      { id: 'users', label: 'User Management', icon: Users, group: 'HR' },
+      { id: 'employee-advances', label: 'Employee Advances', icon: Wallet, group: 'HR' },
+      { id: 'team', label: 'Team Expenses', icon: Users, group: 'HR' },
+      
+      { id: 'settings', label: 'Admin Settings', icon: SettingsIcon, group: 'System' }
     ];
   } else if (profile?.role === 'Accountant') {
     menuItems = [
       { id: 'dashboard', label: 'Finance Dashboard', icon: LayoutDashboard },
-      { id: 'receipt-generator', label: 'New Receipt', icon: Receipt },
-      { id: 'receipt-history', label: 'Receipt History', icon: History },
+      { id: 'new-sale', label: 'New Sale', icon: PlusCircle },
+      { id: 'sales-history', label: 'Sales History', icon: History },
+      { id: 'customers', label: 'Customers', icon: Users },
+      { id: 'payments', label: 'Payments & Receipts', icon: Receipt },
+      { id: 'liabilities', label: 'Liabilities', icon: CreditCard },
+      { id: 'reports', label: 'Reports', icon: FilePlus },
+      { id: 'employee-advances', label: 'Employee Advances', icon: Wallet },
       { id: 'expense-generator', label: 'My Expense', icon: FilePlus },
       { id: 'expense-history', label: 'My Expense History', icon: History },
       { id: 'team', label: 'Company Expenses', icon: Users }
+    ];
+  } else if (profile?.role === 'Sales Manager' || profile?.role === 'Sales Executive' || profile?.department?.toLowerCase() === 'sales') {
+    menuItems = [
+      { id: 'sales-dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { id: 'sales-activities', label: 'Sales Activities', icon: Activity },
+      { id: 'sales-leads', label: 'Leads', icon: Target },
+      { id: 'sales-pipeline', label: 'Pipeline', icon: Briefcase },
+      { id: 'sales-followups', label: 'Follow-ups', icon: PhoneCall },
+      { id: 'sales-quotations', label: 'Quotations', icon: FileText },
+      { id: 'customers', label: 'Customers', icon: Users },
+      { id: 'expense-generator', label: 'Submit Expense', icon: FilePlus },
+      { id: 'expense-history', label: 'My Expense History', icon: History }
     ];
   } else if (profile?.role === 'Manager') {
     menuItems = [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { id: 'expense-generator', label: 'Submit Expense', icon: FilePlus },
       { id: 'expense-history', label: 'My History', icon: History },
+      { id: 'my-advances', label: 'My Advances', icon: Wallet },
       { id: 'team', label: 'Team Expenses', icon: Users }
     ];
   } else {
     menuItems = [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { id: 'expense-generator', label: 'Submit Expense', icon: FilePlus },
-      { id: 'expense-history', label: 'History', icon: History }
+      { id: 'expense-history', label: 'History', icon: History },
+      { id: 'my-advances', label: 'My Advances', icon: Wallet }
     ];
   }
 
@@ -114,14 +154,22 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 space-y-2 mt-4">
-            {menuItems.map((item) => {
+          <nav className="flex-1 px-4 space-y-2 mt-4 pb-20 overflow-y-auto">
+            {menuItems.map((item, index) => {
               const Icon = item.icon;
-              const isActive = activeTab === item.id;
+              const isActive = activeTab === item.id || (activeTab === 'customer-profile' && item.id === 'customers');
+              const prevItem = index > 0 ? menuItems[index - 1] : null;
+              const showGroupHeader = item.group && (!prevItem || prevItem.group !== item.group);
+
               return (
-                <button
-                  key={item.id}
-                  onClick={() => {
+                <React.Fragment key={item.id}>
+                  {showGroupHeader && (
+                    <div className="pt-4 pb-2 pl-2">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.group}</span>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => {
                     setActiveTab(item.id);
                     setIsMobileMenuOpen(false);
                   }}
@@ -141,7 +189,8 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
                   {isActive && (
                     <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ backgroundColor: brandColor }} />
                   )}
-                </button>
+                  </button>
+                </React.Fragment>
               );
             })}
           </nav>

@@ -20,7 +20,7 @@ import {
   PartyPopper
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { api } from '../../api/api';
 
 interface Trip {
@@ -38,6 +38,8 @@ interface Purchase {
 }
 
 interface ExpenseFormData {
+  expenseType: 'Personal' | 'Company Advance';
+  advance_id?: number;
   date: string;
   trips: Trip[];
   foodType: string[];
@@ -55,6 +57,8 @@ const ExpenseForm = ({ editData, onComplete, onNew }: any) => {
   const { register, handleSubmit, watch, setValue, reset, control } = useForm<ExpenseFormData>({
     defaultValues: editData ? {
       ...editData,
+      expenseType: editData.advance_id ? 'Company Advance' : 'Personal',
+      advance_id: editData.advance_id,
       date: new Date(editData.date).toISOString().slice(0, 16),
       purchases: editData.purchases?.length
         ? editData.purchases
@@ -62,6 +66,7 @@ const ExpenseForm = ({ editData, onComplete, onNew }: any) => {
           ? [{ vendor: editData.purchaseVendor, item: editData.purchaseItem, amount: editData.purchaseAmount }]
           : []
     } : {
+      expenseType: 'Personal',
       date: new Date().toISOString().slice(0, 16),
       trips: [],
       foodType: [],
@@ -81,6 +86,13 @@ const ExpenseForm = ({ editData, onComplete, onNew }: any) => {
     control,
     name: "purchases"
   });
+
+  const { data: myAdvances } = useQuery({
+    queryKey: ['my-advances'],
+    queryFn: api.getMyAdvances
+  });
+
+  const activeAdvances = myAdvances?.filter((a: any) => a.remaining_amount > 0 && a.status !== 'Cancelled') || [];
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
@@ -120,6 +132,28 @@ const ExpenseForm = ({ editData, onComplete, onNew }: any) => {
   });
 
   const onSubmit = (data: any) => {
+    if (data.expenseType === 'Company Advance') {
+      if (!data.advance_id) {
+        toast.error('Please select an advance to link to.');
+        return;
+      }
+      const selected = activeAdvances.find((a: any) => a.id === Number(data.advance_id));
+      if (!selected && !editData) {
+        toast.error('Selected advance is invalid.');
+        return;
+      }
+      if (selected && !editData) {
+        const travelTotal = data.trips.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+        const purchasesTotal = (data.purchases || []).reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+        const totalAmount = travelTotal + Number(data.foodAmount || 0) + Number(data.accommodationAmount || 0) + purchasesTotal;
+        if (totalAmount > selected.remaining_amount) {
+          toast.error(`Total expense (₹${totalAmount}) exceeds remaining advance balance (₹${selected.remaining_amount}).`);
+          return;
+        }
+      }
+    } else {
+       delete data.advance_id;
+    }
     mutation.mutate(data);
   };
 
@@ -128,6 +162,7 @@ const ExpenseForm = ({ editData, onComplete, onNew }: any) => {
       onNew();
     }
     reset({
+      expenseType: 'Personal',
       date: new Date().toISOString().slice(0, 16),
       trips: [],
       foodType: [],
@@ -185,6 +220,37 @@ const ExpenseForm = ({ editData, onComplete, onNew }: any) => {
   return (
     <div className="max-w-4xl mx-auto space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 px-4 md:px-0">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 md:space-y-6">
+        {/* Advance vs Personal Toggle */}
+        <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+          <div className="flex gap-4">
+            <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border cursor-pointer transition-all ${watch('expenseType') === 'Personal' ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+              <input type="radio" value="Personal" {...register('expenseType')} className="hidden" />
+              <span className="font-bold text-sm">Personal Expense</span>
+            </label>
+            <label className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border cursor-pointer transition-all ${watch('expenseType') === 'Company Advance' ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+              <input type="radio" value="Company Advance" {...register('expenseType')} className="hidden" />
+              <span className="font-bold text-sm">Company Advance</span>
+            </label>
+          </div>
+          
+          {watch('expenseType') === 'Company Advance' && (
+            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+              <label className="text-sm font-bold text-slate-700">Select Advance *</label>
+              <select 
+                {...register('advance_id', { required: watch('expenseType') === 'Company Advance' })}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20"
+              >
+                <option value="">-- Choose an active advance --</option>
+                {activeAdvances.map((adv: any) => (
+                  <option key={adv.id} value={adv.id}>
+                    {adv.purpose} - Remaining: ₹{adv.remaining_amount.toLocaleString('en-IN')} (Transferred on {new Date(adv.transfer_date).toLocaleDateString()})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
         {/* Header Section */}
         <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm">
           <div className="flex items-center gap-3 mb-4 md:mb-6 text-indigo-600">
