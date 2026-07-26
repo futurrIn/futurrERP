@@ -14,7 +14,7 @@ const FOLLOWUP_METHODS = ['Phone Call', 'WhatsApp', 'Email', 'Offline Visit', 'O
 
 const SalesActivityForm = () => {
   const queryClient = useQueryClient();
-  const { register, handleSubmit, watch, reset, control, formState: { errors } } = useForm({
+  const { register, handleSubmit, watch, reset, control, formState: { errors } } = useForm<any>({
     defaultValues: {
       date: format(new Date(), 'yyyy-MM-dd'),
       priority: 'Medium',
