@@ -753,7 +753,7 @@ export const api = {
 
   createInvestment: async (investment: any) => {
     const { data: { user } } = await supabase.auth.getUser();
-    const { addLiability, ...capitalData } = investment;
+    const { addLiability, due_date, ...capitalData } = investment;
 
     const { data, error } = await supabase
       .from('capital_transactions')
