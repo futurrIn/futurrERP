@@ -8,9 +8,23 @@ import { format } from 'date-fns';
 const LeadManager = ({ setActiveTab, setSelectedLeadId }: { setActiveTab: any, setSelectedLeadId: any }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const queryClient = useQueryClient();
 
-  const { data: leads, isLoading } = useQuery({ queryKey: ['leads'], queryFn: () => api.getLeads() });
+  const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: api.getProfile });
+  
+  const { data: allUsers } = useQuery({
+    queryKey: ['users'],
+    queryFn: api.getAllUsers,
+    enabled: profile?.role === 'Admin'
+  });
+
+  const isAdmin = profile?.role === 'Admin';
+
+  const { data: leads, isLoading } = useQuery({ 
+    queryKey: ['leads', selectedEmployeeId], 
+    queryFn: () => api.getLeads(selectedEmployeeId || undefined) 
+  });
 
   const deleteLeadMutation = useMutation({
     mutationFn: (id: number) => api.deleteLead(id),
@@ -55,12 +69,33 @@ const LeadManager = ({ setActiveTab, setSelectedLeadId }: { setActiveTab: any, s
           <h2 className="text-2xl font-black text-slate-800 tracking-tight">Lead Management</h2>
           <p className="text-slate-500 font-medium text-sm">View and manage all potential customers and their pipelines.</p>
         </div>
-        <button 
-          onClick={() => setActiveTab('sales-activities')}
-          className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-sm"
-        >
-          New Outreach <ArrowRight size={18} />
-        </button>
+        
+        <div className="flex items-center gap-4 flex-wrap">
+          {isAdmin && allUsers && (
+            <div className="flex items-center gap-3 bg-white p-2 border border-slate-200 rounded-xl shadow-sm">
+              <label className="text-sm font-bold text-slate-600 pl-2">View:</label>
+              <select
+                value={selectedEmployeeId}
+                onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                className="bg-slate-50 border-none rounded-lg px-3 py-1.5 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all cursor-pointer"
+              >
+                <option value="">All (Company View)</option>
+                {allUsers.map((user: any) => (
+                  <option key={user.id} value={user.id}>
+                    {user.fullName || user.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          
+          <button 
+            onClick={() => setActiveTab('sales-activities')}
+            className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-sm"
+          >
+            New Outreach <ArrowRight size={18} />
+          </button>
+        </div>
       </div>
 
       <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4">

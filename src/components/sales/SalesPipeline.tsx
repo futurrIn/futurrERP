@@ -19,10 +19,10 @@ const SalesPipeline = ({ setSelectedLeadId, setActiveTab }: { setSelectedLeadId:
   const { data: allUsers } = useQuery({
     queryKey: ['users'],
     queryFn: api.getAllUsers,
-    enabled: profile?.role === 'Admin' || profile?.role === 'Manager'
+    enabled: profile?.role === 'Admin'
   });
 
-  const isAdminOrManager = profile?.role === 'Admin' || profile?.role === 'Manager';
+  const isAdmin = profile?.role === 'Admin';
 
   const { data: leads, isLoading } = useQuery({ 
     queryKey: ['leads', selectedEmployeeId], 
@@ -99,7 +99,7 @@ const SalesPipeline = ({ setSelectedLeadId, setActiveTab }: { setSelectedLeadId:
           <p className="text-slate-500 font-medium text-sm">Drag and drop leads to update their current stage.</p>
         </div>
         
-        {isAdminOrManager && allUsers && (
+        {isAdmin && allUsers && (
           <div className="flex items-center gap-3">
             <label className="text-sm font-bold text-slate-600">View Pipeline of:</label>
             <select

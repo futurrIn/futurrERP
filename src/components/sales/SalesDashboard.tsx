@@ -12,10 +12,10 @@ const SalesDashboard = ({ setActiveTab }: { setActiveTab: any }) => {
   const { data: allUsers } = useQuery({
     queryKey: ['users'],
     queryFn: api.getAllUsers,
-    enabled: profile?.role === 'Admin' || profile?.role === 'Manager'
+    enabled: profile?.role === 'Admin'
   });
 
-  const isAdminOrManager = profile?.role === 'Admin' || profile?.role === 'Manager';
+  const isAdmin = profile?.role === 'Admin';
 
   const { data: leads, isLoading: leadsLoading } = useQuery({ 
     queryKey: ['leads', selectedEmployeeId], 
@@ -72,7 +72,7 @@ const SalesDashboard = ({ setActiveTab }: { setActiveTab: any }) => {
         </div>
 
         <div className="flex items-center gap-4 flex-wrap">
-          {isAdminOrManager && allUsers && (
+          {isAdmin && allUsers && (
             <div className="flex items-center gap-3 bg-white p-2 border border-slate-200 rounded-xl shadow-sm">
               <label className="text-sm font-bold text-slate-600 pl-2">View:</label>
               <select
