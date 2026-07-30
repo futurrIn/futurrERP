@@ -1,14 +1,36 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../api/api';
 import { Activity, Target, PhoneCall, Calendar, Percent, Users, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
 import { format, isToday, isThisWeek, parseISO } from 'date-fns';
 
 const SalesDashboard = ({ setActiveTab }: { setActiveTab: any }) => {
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
+
   const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: api.getProfile });
-  const { data: leads, isLoading: leadsLoading } = useQuery({ queryKey: ['leads'], queryFn: api.getLeads });
-  const { data: activities, isLoading: actsLoading } = useQuery({ queryKey: ['sales_activities'], queryFn: () => api.getSalesActivities() });
-  const { data: followups, isLoading: followsLoading } = useQuery({ queryKey: ['sales_followups'], queryFn: () => api.getSalesFollowups() });
+  
+  const { data: allUsers } = useQuery({
+    queryKey: ['users'],
+    queryFn: api.getAllUsers,
+    enabled: profile?.role === 'Admin' || profile?.role === 'Manager'
+  });
+
+  const isAdminOrManager = profile?.role === 'Admin' || profile?.role === 'Manager';
+
+  const { data: leads, isLoading: leadsLoading } = useQuery({ 
+    queryKey: ['leads', selectedEmployeeId], 
+    queryFn: () => api.getLeads(selectedEmployeeId || undefined) 
+  });
+  
+  const { data: activities, isLoading: actsLoading } = useQuery({ 
+    queryKey: ['sales_activities', selectedEmployeeId], 
+    queryFn: () => api.getSalesActivities(undefined, selectedEmployeeId || undefined) 
+  });
+  
+  const { data: followups, isLoading: followsLoading } = useQuery({ 
+    queryKey: ['sales_followups', selectedEmployeeId], 
+    queryFn: () => api.getSalesFollowups(undefined, selectedEmployeeId || undefined) 
+  });
 
   const metrics = useMemo(() => {
     if (!leads || !activities || !followups) return null;
@@ -48,12 +70,33 @@ const SalesDashboard = ({ setActiveTab }: { setActiveTab: any }) => {
           <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">Sales Dashboard</h2>
           <p className="text-slate-500 font-medium text-sm md:text-base">Overview of your CRM pipeline and daily outreach.</p>
         </div>
-        <button 
-          onClick={() => setActiveTab('sales-activities')}
-          className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-sm self-start"
-        >
-          <Activity size={18} /> Log Activity
-        </button>
+
+        <div className="flex items-center gap-4 flex-wrap">
+          {isAdminOrManager && allUsers && (
+            <div className="flex items-center gap-3 bg-white p-2 border border-slate-200 rounded-xl shadow-sm">
+              <label className="text-sm font-bold text-slate-600 pl-2">View:</label>
+              <select
+                value={selectedEmployeeId}
+                onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                className="bg-slate-50 border-none rounded-lg px-3 py-1.5 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all cursor-pointer"
+              >
+                <option value="">All (Company View)</option>
+                {allUsers.map((user: any) => (
+                  <option key={user.id} value={user.id}>
+                    {user.fullName || user.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          
+          <button 
+            onClick={() => setActiveTab('sales-activities')}
+            className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-sm self-start md:self-auto"
+          >
+            <Activity size={18} /> Log Activity
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6">

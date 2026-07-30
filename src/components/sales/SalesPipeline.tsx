@@ -9,10 +9,24 @@ const STAGES = ['New', 'Contacted', 'Proposal Sent', 'Converted', 'Lost'];
 const SalesPipeline = ({ setSelectedLeadId, setActiveTab }: { setSelectedLeadId: any, setActiveTab: any }) => {
   const queryClient = useQueryClient();
   const [draggedLead, setDraggedLead] = useState<number | null>(null);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
+
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: api.getProfile
+  });
+
+  const { data: allUsers } = useQuery({
+    queryKey: ['users'],
+    queryFn: api.getAllUsers,
+    enabled: profile?.role === 'Admin' || profile?.role === 'Manager'
+  });
+
+  const isAdminOrManager = profile?.role === 'Admin' || profile?.role === 'Manager';
 
   const { data: leads, isLoading } = useQuery({ 
-    queryKey: ['leads'], 
-    queryFn: api.getLeads 
+    queryKey: ['leads', selectedEmployeeId], 
+    queryFn: () => api.getLeads(selectedEmployeeId || undefined) 
   });
 
   const updateLeadStatusMutation = useMutation({
@@ -79,9 +93,29 @@ const SalesPipeline = ({ setSelectedLeadId, setActiveTab }: { setSelectedLeadId:
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 px-4 md:px-0">
-      <div>
-        <h2 className="text-2xl font-black text-slate-800 tracking-tight">Sales Pipeline</h2>
-        <p className="text-slate-500 font-medium text-sm">Drag and drop leads to update their current stage.</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-slate-800 tracking-tight">Sales Pipeline</h2>
+          <p className="text-slate-500 font-medium text-sm">Drag and drop leads to update their current stage.</p>
+        </div>
+        
+        {isAdminOrManager && allUsers && (
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-bold text-slate-600">View Pipeline of:</label>
+            <select
+              value={selectedEmployeeId}
+              onChange={(e) => setSelectedEmployeeId(e.target.value)}
+              className="bg-white border-2 border-slate-200 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+            >
+              <option value="">All (Company View)</option>
+              {allUsers.map((user: any) => (
+                <option key={user.id} value={user.id}>
+                  {user.fullName || user.email}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <div className="flex gap-6 overflow-x-auto pb-4 snap-x">

@@ -615,11 +615,12 @@ export const api = {
   },
 
   // --- Sales CRM ---
-  getLeads: async () => {
-    const { data, error } = await supabase
-      .from('leads')
-      .select('*')
-      .order('created_at', { ascending: false });
+  getLeads: async (employeeId?: string) => {
+    let query = supabase.from('leads').select('*').order('created_at', { ascending: false });
+    if (employeeId) {
+      query = query.eq('created_by', employeeId);
+    }
+    const { data, error } = await query;
     if (error) throw error;
     return data;
   },
@@ -666,10 +667,13 @@ export const api = {
     if (error) throw error;
   },
 
-  getSalesActivities: async (leadId?: number) => {
+  getSalesActivities: async (leadId?: number, employeeId?: string) => {
     let query = supabase.from('sales_activities').select('*, leads(*)').order('created_at', { ascending: false });
     if (leadId) {
       query = query.eq('lead_id', leadId);
+    }
+    if (employeeId) {
+      query = query.eq('created_by', employeeId);
     }
     const { data, error } = await query;
     if (error) throw error;
@@ -688,10 +692,13 @@ export const api = {
     return data;
   },
 
-  getSalesFollowups: async (leadId?: number) => {
+  getSalesFollowups: async (leadId?: number, employeeId?: string) => {
     let query = supabase.from('sales_followups').select('*, leads(*)').order('date', { ascending: true });
     if (leadId) {
       query = query.eq('lead_id', leadId);
+    }
+    if (employeeId) {
+      query = query.eq('created_by', employeeId);
     }
     const { data, error } = await query;
     if (error) throw error;

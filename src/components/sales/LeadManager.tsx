@@ -10,7 +10,7 @@ const LeadManager = ({ setActiveTab, setSelectedLeadId }: { setActiveTab: any, s
   const [statusFilter, setStatusFilter] = useState('All');
   const queryClient = useQueryClient();
 
-  const { data: leads, isLoading } = useQuery({ queryKey: ['leads'], queryFn: api.getLeads });
+  const { data: leads, isLoading } = useQuery({ queryKey: ['leads'], queryFn: () => api.getLeads() });
 
   const deleteLeadMutation = useMutation({
     mutationFn: (id: number) => api.deleteLead(id),
