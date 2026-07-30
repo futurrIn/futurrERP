@@ -35,10 +35,13 @@ const SalesDashboard = ({ setActiveTab }: { setActiveTab: any }) => {
   const metrics = useMemo(() => {
     if (!leads || !activities || !followups) return null;
 
-    const todayActivities = activities.filter((a: any) => isToday(new Date(a.date)));
+    const validActivities = activities.filter((a: any) => a.leads);
+    const validFollowups = followups.filter((f: any) => f.leads);
+
+    const todayActivities = validActivities.filter((a: any) => isToday(new Date(a.date)));
     
     // Follow-ups
-    const pendingFollowups = followups.filter((f: any) => f.status === 'Pending');
+    const pendingFollowups = validFollowups.filter((f: any) => f.status === 'Pending');
     const todayFollowups = pendingFollowups.filter((f: any) => isToday(new Date(f.date)));
     const meetingsThisWeek = pendingFollowups.filter((f: any) => f.method === 'Online Meeting' || f.method === 'Offline Visit' || f.method === 'Demo').filter((f: any) => isThisWeek(new Date(f.date)));
 
@@ -53,7 +56,7 @@ const SalesDashboard = ({ setActiveTab }: { setActiveTab: any }) => {
       pendingFollows: pendingFollowups.length,
       meetings: meetingsThisWeek.length,
       conversion: conversionRate,
-      recentOutreach: activities.slice(0, 5)
+      recentOutreach: validActivities.slice(0, 5)
     };
   }, [leads, activities, followups]);
 
