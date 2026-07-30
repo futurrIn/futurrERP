@@ -127,7 +127,7 @@ const SalesPipeline = ({ setSelectedLeadId, setActiveTab }: { setSelectedLeadId:
               key={stage}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, stage)}
-              className={`flex-shrink-0 w-80 rounded-3xl border-2 border-dashed ${getStageColor(stage)} p-4 flex flex-col snap-start transition-colors ${draggedLead ? 'hover:border-indigo-400 hover:bg-indigo-50/30' : ''}`}
+              className={`flex-shrink-0 w-[85vw] sm:w-80 rounded-3xl border-2 border-dashed ${getStageColor(stage)} p-4 flex flex-col snap-center sm:snap-start transition-colors ${draggedLead ? 'hover:border-indigo-400 hover:bg-indigo-50/30' : ''}`}
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 ${getStageHeaderColor(stage)}`}>

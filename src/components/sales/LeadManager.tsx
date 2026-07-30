@@ -126,7 +126,7 @@ const LeadManager = ({ setActiveTab, setSelectedLeadId }: { setActiveTab: any, s
 
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100 text-xs uppercase tracking-wider text-slate-500 font-bold">
                 <th className="p-4 pl-6">Lead / Company</th>

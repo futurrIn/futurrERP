@@ -153,11 +153,11 @@ const SalesActivityForm = () => {
             </div>
             <div className="space-y-3">
               {contactFields.map((field, index) => (
-                <div key={field.id} className="flex items-center gap-3">
-                  <input {...register(`contacts.${index}.name`)} placeholder="Contact Person" className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all font-medium text-sm" />
-                  <input {...register(`contacts.${index}.phone`)} placeholder="Phone Number" className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all font-medium text-sm" />
+                <div key={field.id} className="flex flex-col sm:flex-row sm:items-center gap-3 w-full">
+                  <input {...register(`contacts.${index}.name`)} placeholder="Contact Person" className="w-full sm:flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all font-medium text-sm" />
+                  <input {...register(`contacts.${index}.phone`)} placeholder="Phone Number" className="w-full sm:flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all font-medium text-sm" />
                   {contactFields.length > 1 && (
-                    <button type="button" onClick={() => removeContact(index)} className="p-2.5 text-rose-500 hover:bg-rose-50 rounded-xl transition-all border border-transparent hover:border-rose-100">
+                    <button type="button" onClick={() => removeContact(index)} className="self-end sm:self-auto p-2.5 text-rose-500 hover:bg-rose-50 rounded-xl transition-all border border-transparent hover:border-rose-100">
                       <Trash2 size={16} />
                     </button>
                   )}
