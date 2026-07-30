@@ -9,19 +9,22 @@ ALTER TABLE IF EXISTS sales_followups ENABLE ROW LEVEL SECURITY;
 
 -- 2. Drop existing policies if any (to avoid conflicts)
 DROP POLICY IF EXISTS "Admin/Manager manage all leads" ON leads;
+DROP POLICY IF EXISTS "Admin manage all leads" ON leads;
 DROP POLICY IF EXISTS "Employees manage own leads" ON leads;
 DROP POLICY IF EXISTS "Admin/Manager manage all sales_activities" ON sales_activities;
+DROP POLICY IF EXISTS "Admin manage all sales_activities" ON sales_activities;
 DROP POLICY IF EXISTS "Employees manage own sales_activities" ON sales_activities;
 DROP POLICY IF EXISTS "Admin/Manager manage all sales_followups" ON sales_followups;
+DROP POLICY IF EXISTS "Admin manage all sales_followups" ON sales_followups;
 DROP POLICY IF EXISTS "Employees manage own sales_followups" ON sales_followups;
 
 -- 3. RLS Policies for leads
--- Admins and Managers can manage all leads
-CREATE POLICY "Admin/Manager manage all leads" ON leads FOR ALL USING (
-  get_my_role() IN ('Admin', 'Manager')
+-- Admins can manage all leads
+CREATE POLICY "Admin manage all leads" ON leads FOR ALL USING (
+  get_my_role() = 'Admin'
 );
 
--- Employees can manage their own leads
+-- Users (Managers, Employees) can manage their own leads
 CREATE POLICY "Employees manage own leads" ON leads FOR ALL USING (
   created_by = auth.uid() OR assigned_to = auth.uid()
 ) WITH CHECK (
@@ -29,8 +32,8 @@ CREATE POLICY "Employees manage own leads" ON leads FOR ALL USING (
 );
 
 -- 4. RLS Policies for sales_activities
-CREATE POLICY "Admin/Manager manage all sales_activities" ON sales_activities FOR ALL USING (
-  get_my_role() IN ('Admin', 'Manager')
+CREATE POLICY "Admin manage all sales_activities" ON sales_activities FOR ALL USING (
+  get_my_role() = 'Admin'
 );
 
 CREATE POLICY "Employees manage own sales_activities" ON sales_activities FOR ALL USING (
@@ -40,8 +43,8 @@ CREATE POLICY "Employees manage own sales_activities" ON sales_activities FOR AL
 );
 
 -- 5. RLS Policies for sales_followups
-CREATE POLICY "Admin/Manager manage all sales_followups" ON sales_followups FOR ALL USING (
-  get_my_role() IN ('Admin', 'Manager')
+CREATE POLICY "Admin manage all sales_followups" ON sales_followups FOR ALL USING (
+  get_my_role() = 'Admin'
 );
 
 CREATE POLICY "Employees manage own sales_followups" ON sales_followups FOR ALL USING (
