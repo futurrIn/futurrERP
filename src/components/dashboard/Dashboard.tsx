@@ -81,19 +81,24 @@ const Dashboard = ({ onNavigateToHistory }: { onNavigateToHistory: () => void })
   const financeMetrics = useMemo(() => {
     if (!isFinanceRole) return null;
 
-    // Top Row Metrics
+    // All-time totals for cumulative balance sheet calculations
+    const allTimeIncome = payments.reduce((sum, p: any) => sum + (p.amount || 0), 0);
+    const allTimeExpenses = teamExpenses.filter((e: any) => e.status === 'Approved').reduce((sum, e: any) => sum + (e.totalAmount || 0), 0);
+    
+    // Employee Advances & Capital
+    const empAdvances = allAdvances.reduce((sum, a: any) => sum + (a.remaining_amount || 0), 0);
+    const pendingSettlements = allAdvances.filter((a: any) => a.remaining_amount > 0 && a.status !== 'Cancelled').length;
+    const totalCapitalRaised = capital.reduce((sum, c: any) => sum + (c.amount || 0), 0);
+
+    // Cash Available is ALWAYS the cumulative real-time bank balance (All-Time Income + Capital - All-Time Expenses - Advances)
+    const cashAvailable = allTimeIncome + totalCapitalRaised - allTimeExpenses - empAdvances;
+
+    // Timeframe-Filtered Performance Metrics (Responds to 7D / 1M / 6M / ALL toggle)
     const totalIncome = filteredPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
     const totalExp = filteredTeamExpenses.filter(e => e.status === 'Approved').reduce((sum, e) => sum + (e.totalAmount || 0), 0);
     const netProfit = totalIncome - totalExp;
-    
-    // Employee Advances
-    const empAdvances = allAdvances.reduce((sum, a) => sum + (a.remaining_amount || 0), 0);
-    const pendingSettlements = allAdvances.filter(a => a.remaining_amount > 0 && a.status !== 'Cancelled').length;
-    
-    // Capital Injected
-    const totalCapitalRaised = capital.reduce((sum, c: any) => sum + (c.amount || 0), 0);
 
-    const cashAvailable = totalIncome + totalCapitalRaised - totalExp - empAdvances;
+    const periodTag = timeframe === '7d' ? '7 Days' : timeframe === '1m' ? '30 Days' : timeframe === '6m' ? '6 Months' : 'All Time';
 
     // Pending Customer Payments
     const pendingSales = sales.filter((s:any) => s.status !== 'Paid');
@@ -141,27 +146,27 @@ const Dashboard = ({ onNavigateToHistory }: { onNavigateToHistory: () => void })
 
     return {
       top: [
-        { label: 'Cash Available', value: `₹${cashAvailable.toLocaleString()}`, icon: IndianRupee, color: 'bg-blue-500' },
-        { label: 'Total Income', value: `₹${totalIncome.toLocaleString()}`, icon: TrendingUp, color: 'bg-emerald-500' },
-        { label: 'Total Capital Raised', value: `₹${totalCapitalRaised.toLocaleString()}`, icon: PiggyBank, color: 'bg-indigo-500' },
-        { label: 'Total Expenses', value: `₹${totalExp.toLocaleString()}`, icon: TrendingDown, color: 'bg-rose-500' },
+        { label: 'Cash Available', value: `₹${cashAvailable.toLocaleString('en-IN')}`, sub: 'Real-time Bank Balance', icon: IndianRupee, color: 'bg-blue-500' },
+        { label: `Income (${periodTag})`, value: `₹${totalIncome.toLocaleString('en-IN')}`, sub: 'Period Inflow', icon: TrendingUp, color: 'bg-emerald-500' },
+        { label: 'Total Capital Raised', value: `₹${totalCapitalRaised.toLocaleString('en-IN')}`, sub: 'All-time Injections', icon: PiggyBank, color: 'bg-indigo-500' },
+        { label: `Expenses (${periodTag})`, value: `₹${totalExp.toLocaleString('en-IN')}`, sub: 'Period Outflow', icon: TrendingDown, color: 'bg-rose-500' },
       ],
       second: [
-        { label: 'Net Profit', value: `₹${netProfit.toLocaleString()}`, sub: 'Income - Expenses', icon: Activity, color: 'bg-indigo-600' },
-        { label: 'Pending Sales', value: `₹${pendingCustomerPayments.toLocaleString()}`, sub: `${pendingSales.length} projects`, icon: Clock, color: 'bg-amber-500' },
-        { label: 'Liabilities', value: `₹${totalLiabilities.toLocaleString()}`, sub: `₹${overdueLiabilities.toLocaleString()} overdue`, icon: CreditCard, color: 'bg-rose-600' },
-        { label: 'Monthly Burn Rate', value: `₹${Math.round(monthlyBurnRate).toLocaleString()}`, sub: `${runwayMonths.toFixed(1)} mo runway`, icon: Flame, color: 'bg-orange-500' },
-        { label: 'Budget Used', value: `${budgetUsedPercent.toFixed(1)}%`, sub: `of ₹${monthlyBudget.toLocaleString()}`, icon: Percent, color: budgetUsedPercent > 80 ? 'bg-red-500' : 'bg-emerald-500' },
-        { label: 'Emp. Advances', value: `₹${empAdvances.toLocaleString()}`, sub: `${pendingSettlements} pending`, icon: Wallet, color: 'bg-purple-500' },
+        { label: `Net Profit (${periodTag})`, value: `₹${netProfit.toLocaleString('en-IN')}`, sub: 'Income - Expenses', icon: Activity, color: 'bg-indigo-600' },
+        { label: 'Pending Sales', value: `₹${pendingCustomerPayments.toLocaleString('en-IN')}`, sub: `${pendingSales.length} projects`, icon: Clock, color: 'bg-amber-500' },
+        { label: 'Liabilities', value: `₹${totalLiabilities.toLocaleString('en-IN')}`, sub: `₹${overdueLiabilities.toLocaleString('en-IN')} overdue`, icon: CreditCard, color: 'bg-rose-600' },
+        { label: 'Monthly Burn Rate', value: `₹${Math.round(monthlyBurnRate).toLocaleString('en-IN')}`, sub: `${runwayMonths.toFixed(1)} mo runway`, icon: Flame, color: 'bg-orange-500' },
+        { label: 'Budget Used', value: `${budgetUsedPercent.toFixed(1)}%`, sub: `of ₹${monthlyBudget.toLocaleString('en-IN')}`, icon: Percent, color: budgetUsedPercent > 80 ? 'bg-red-500' : 'bg-emerald-500' },
+        { label: 'Emp. Advances', value: `₹${empAdvances.toLocaleString('en-IN')}`, sub: `${pendingSettlements} pending`, icon: Wallet, color: 'bg-purple-500' },
       ],
       expenseBreakdown: [
-        { label: 'Travel Allowance', value: `₹${travelTotal.toLocaleString()}`, icon: TrendingUp, color: 'bg-blue-500' },
-        { label: 'Food & Accommodation', value: `₹${foodAccTotal.toLocaleString()}`, icon: Activity, color: 'bg-orange-500' },
-        { label: 'Purchases / Vendors', value: `₹${purchaseTotal.toLocaleString()}`, icon: CreditCard, color: 'bg-emerald-500' },
+        { label: 'Travel Allowance', value: `₹${travelTotal.toLocaleString('en-IN')}`, icon: TrendingUp, color: 'bg-blue-500' },
+        { label: 'Food & Accommodation', value: `₹${foodAccTotal.toLocaleString('en-IN')}`, icon: Activity, color: 'bg-orange-500' },
+        { label: 'Purchases / Vendors', value: `₹${purchaseTotal.toLocaleString('en-IN')}`, icon: CreditCard, color: 'bg-emerald-500' },
       ],
       alerts: [
-        ...(pendingCustomerPayments > 0 ? [{ type: 'warning', msg: `${pendingSales.length} pending customer payments totaling ₹${pendingCustomerPayments.toLocaleString()}` }] : []),
-        ...(overdueLiabilities > 0 ? [{ type: 'error', msg: `₹${overdueLiabilities.toLocaleString()} in overdue liabilities require immediate attention.` }] : []),
+        ...(pendingCustomerPayments > 0 ? [{ type: 'warning', msg: `${pendingSales.length} pending customer payments totaling ₹${pendingCustomerPayments.toLocaleString('en-IN')}` }] : []),
+        ...(overdueLiabilities > 0 ? [{ type: 'error', msg: `₹${overdueLiabilities.toLocaleString('en-IN')} in overdue liabilities require immediate attention.` }] : []),
         ...(teamExpenses.filter(e => e.status === 'Pending').length > 0 ? [{ type: 'info', msg: `${teamExpenses.filter(e => e.status === 'Pending').length} expense claims pending approval.` }] : []),
         ...(budgetUsedPercent > 80 ? [{ type: 'error', msg: `Budget alert: ${budgetUsedPercent.toFixed(1)}% of monthly budget utilized.` }] : []),
         ...(pendingSettlements > 0 ? [{ type: 'warning', msg: `${pendingSettlements} employee advances awaiting settlement.` }] : []),
