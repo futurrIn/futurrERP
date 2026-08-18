@@ -749,6 +749,26 @@ export const api = {
     return data;
   },
 
+  updateInvestor: async (id: string, updates: any) => {
+    const { data, error } = await supabase
+      .from('investors')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  deleteInvestor: async (id: string) => {
+    const { error } = await supabase
+      .from('investors')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  },
+
   getCapitalTransactions: async () => {
     const { data, error } = await supabase
       .from('capital_transactions')
@@ -783,5 +803,25 @@ export const api = {
     }
 
     return data;
+  },
+
+  updateCapitalTransaction: async (id: number, updates: any) => {
+    const { data, error } = await supabase
+      .from('capital_transactions')
+      .update(updates)
+      .eq('id', id)
+      .select('*, investors(*)')
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  deleteCapitalTransaction: async (id: number) => {
+    const { error } = await supabase
+      .from('capital_transactions')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return { success: true };
   }
 };

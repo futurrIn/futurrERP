@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/api';
-import { Users, PlusCircle, Search, Building2, Phone, Mail, PiggyBank } from 'lucide-react';
+import { Users, PlusCircle, Search, Building2, Phone, Mail, PiggyBank, Edit3, Trash2, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
@@ -15,27 +15,66 @@ const InvestorManager: React.FC<InvestorManagerProps> = ({ onInvestorSelect, onN
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [editingInvestor, setEditingInvestor] = useState<any | null>(null);
 
   const { data: investors = [], isLoading } = useQuery({
     queryKey: ['investors'],
     queryFn: api.getInvestors
   });
 
-  const { register, handleSubmit, reset } = useForm();
+  const { register, handleSubmit, reset, setValue } = useForm();
 
-  const mutation = useMutation({
-    mutationFn: api.createInvestor,
+  const saveMutation = useMutation({
+    mutationFn: (data: any) => {
+      if (editingInvestor) {
+        return api.updateInvestor(editingInvestor.id, data);
+      }
+      return api.createInvestor(data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['investors'] });
-      toast.success('Investor/Lender added successfully');
-      setShowForm(false);
-      reset();
+      toast.success(editingInvestor ? 'Profile updated successfully' : 'Investor/Lender added successfully');
+      handleCancel();
     },
     onError: (err: any) => toast.error(err.message)
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.deleteInvestor(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['investors'] });
+      queryClient.invalidateQueries({ queryKey: ['capital_transactions'] });
+      toast.success('Profile deleted successfully');
+    },
+    onError: (err: any) => toast.error(err.message)
+  });
+
+  const handleEdit = (e: React.MouseEvent, inv: any) => {
+    e.stopPropagation();
+    setEditingInvestor(inv);
+    setValue('name', inv.name);
+    setValue('type', inv.type);
+    setValue('company', inv.company || '');
+    setValue('phone', inv.phone || '');
+    setValue('email', inv.email || '');
+    setShowForm(true);
+  };
+
+  const handleDelete = (e: React.MouseEvent, inv: any) => {
+    e.stopPropagation();
+    if (window.confirm(`Are you sure you want to delete profile "${inv.name}"? This will also remove associated transactions.`)) {
+      deleteMutation.mutate(inv.id);
+    }
+  };
+
+  const handleCancel = () => {
+    setShowForm(false);
+    setEditingInvestor(null);
+    reset();
+  };
+
   const onSubmit = (data: any) => {
-    mutation.mutate(data);
+    saveMutation.mutate(data);
   };
 
   const filtered = investors.filter((i: any) => 
@@ -54,7 +93,13 @@ const InvestorManager: React.FC<InvestorManagerProps> = ({ onInvestorSelect, onN
         </div>
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => {
+              if (showForm) {
+                handleCancel();
+              } else {
+                setShowForm(true);
+              }
+            }}
             className="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold hover:bg-slate-50 transition-colors"
           >
             {showForm ? 'Cancel' : 'New Profile'}
@@ -73,7 +118,15 @@ const InvestorManager: React.FC<InvestorManagerProps> = ({ onInvestorSelect, onN
 
       {showForm && (
         <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm mb-6 animate-in fade-in slide-in-from-top-4">
-          <h3 className="text-lg font-black text-slate-800 mb-6">Add New Investor / Lender</h3>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-black text-slate-800">
+              {editingInvestor ? 'Edit Investor / Lender Profile' : 'Add New Investor / Lender'}
+            </h3>
+            <button onClick={handleCancel} className="text-slate-400 hover:text-slate-600">
+              <X size={20} />
+            </button>
+          </div>
+
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -122,13 +175,22 @@ const InvestorManager: React.FC<InvestorManagerProps> = ({ onInvestorSelect, onN
                 />
               </div>
             </div>
-            <button 
-              type="submit"
-              disabled={mutation.isPending}
-              className="w-full md:w-auto bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 disabled:opacity-50"
-            >
-              {mutation.isPending ? 'Saving...' : 'Save Profile'}
-            </button>
+            <div className="flex gap-4">
+              <button 
+                type="submit"
+                disabled={saveMutation.isPending}
+                className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 disabled:opacity-50"
+              >
+                {saveMutation.isPending ? 'Saving...' : editingInvestor ? 'Update Profile' : 'Save Profile'}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="bg-slate-100 text-slate-600 px-6 py-3 rounded-xl font-bold hover:bg-slate-200 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           </form>
         </div>
       )}
@@ -187,9 +249,27 @@ const InvestorManager: React.FC<InvestorManagerProps> = ({ onInvestorSelect, onN
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Added</span>
-                  <div className="text-sm font-bold text-slate-700">{format(new Date(inv.created_at), 'dd MMM yyyy')}</div>
+                <div className="flex items-center gap-4 self-end sm:self-center">
+                  <div className="text-right">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Added</span>
+                    <div className="text-sm font-bold text-slate-700">{format(new Date(inv.created_at), 'dd MMM yyyy')}</div>
+                  </div>
+                  <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                    <button
+                      onClick={(e) => handleEdit(e, inv)}
+                      className="p-2 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      title="Edit Profile"
+                    >
+                      <Edit3 size={16} />
+                    </button>
+                    <button
+                      onClick={(e) => handleDelete(e, inv)}
+                      className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete Profile"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))
