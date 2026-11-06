@@ -86,7 +86,7 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                     {/* Header Banner on Page 1 */}
                     <div
                       id="document-header-banner"
-                      className="p-7 flex items-center justify-between"
+                      className="px-7 py-5 flex items-center justify-between"
                       style={{
                         background: 'linear-gradient(135deg, #180928 0%, #2b0c57 55%, #151030 100%)',
                         borderBottom: '3px solid #8b5cf6',
@@ -155,7 +155,7 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
 
                     {/* Client & Booking Metadata Section */}
                     <div
-                      className="p-7 grid grid-cols-2 gap-8"
+                      className="px-7 py-3.5 grid grid-cols-2 gap-8"
                       style={{
                         backgroundColor: '#f8fafc',
                         borderBottom: '1px solid #e2e8f0',
@@ -359,28 +359,28 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
 
                 {/* Terms & Totals Split Grid - STRICTLY RENDERED ON LAST PAGE ONLY */}
                 {page.isLastPage && (
-                  <div className="px-7 pt-4 pb-6 grid grid-cols-12 gap-8">
+                  <div className="px-7 pt-3 pb-3 grid grid-cols-12 gap-6">
                     {/* Left Column: Terms & Banking Details (7 cols) */}
-                    <div className="col-span-7 space-y-3">
+                    <div className="col-span-7 space-y-2">
                       <div>
                         <span className="text-[11px] font-black uppercase tracking-wider block mb-1" style={{ color: '#0f172a' }}>
                           Terms &amp; Banking Details:
                         </span>
-                        <p className="text-[11px] leading-relaxed" style={{ color: '#475569', wordSpacing: '0.06em' }}>
+                        <p className="text-[10.5px] leading-relaxed" style={{ color: '#475569', wordSpacing: '0.06em' }}>
                           {data.termsAndConditions || 'Bank transfer / NEFT / UPI settlement prior to dispatch. All bookings subject to operator safety clearance and technical verification.'}
                         </p>
                       </div>
 
                       {data.bankDetails && (
                         <div
-                          className="p-3.5 rounded-xl space-y-1.5 text-[11px]"
+                          className="p-2.5 rounded-xl space-y-1 text-[10.5px]"
                           style={{
                             backgroundColor: '#f8fafc',
                             border: '1px solid #e2e8f0',
                             wordSpacing: '0.04em'
                           }}
                         >
-                          <div className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: '#64748b' }}>
+                          <div className="text-[9.5px] font-bold uppercase tracking-wider mb-0.5" style={{ color: '#64748b' }}>
                             Direct Settlement Account
                           </div>
                           <div style={{ color: '#334155' }}>
@@ -396,7 +396,7 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                     {/* Right Column: Financial Summary Box (5 cols) */}
                     <div className="col-span-5">
                       <div
-                        className="rounded-xl p-4 space-y-2.5"
+                        className="rounded-xl p-3 space-y-1.5"
                         style={{
                           backgroundColor: '#ffffff',
                           border: '1px solid #e2e8f0',
@@ -437,7 +437,7 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                         </div>
 
                         <div
-                          className="pt-2.5 flex justify-between items-baseline"
+                          className="pt-2 flex justify-between items-baseline"
                           style={{ borderTop: '2px solid #0f172a' }}
                         >
                           <span className="text-sm font-black" style={{ color: '#0f172a', wordSpacing: '0.04em' }}>Grand Total:</span>
@@ -449,7 +449,7 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                           </span>
                         </div>
 
-                        <div className="text-[10px] text-center italic mt-1" style={{ color: '#94a3b8', wordSpacing: '0.04em' }}>
+                        <div className="text-[9.5px] text-center italic mt-0.5" style={{ color: '#94a3b8', wordSpacing: '0.04em' }}>
                           {data.gstType === 'exempt'
                             ? '* GST Not Applicable (Exempt / Nil)'
                             : '* Inclusive of 18% Applicable GST'}
@@ -462,7 +462,7 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
 
               {/* Bottom Section: Legal Footer on Every Page */}
               <div
-                className="px-7 py-4 flex items-end justify-between shrink-0"
+                className="px-7 py-3 flex items-end justify-between shrink-0"
                 style={{
                   borderTop: '1px solid #e2e8f0',
                   backgroundColor: '#ffffff'

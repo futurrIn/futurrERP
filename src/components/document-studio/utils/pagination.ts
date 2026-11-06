@@ -14,39 +14,33 @@ export interface PageChunk {
  */
 export function estimateItemRowHeight(item: LineItem): number {
   const nameLen = (item.name || '').length;
-  if (nameLen > 80) return 76; // 3-4 lines wrapped description
-  if (nameLen > 40) return 54; // 2 lines
-  return 38; // 1 line standard row
+  if (nameLen > 80) return 60; // 3-4 lines wrapped description
+  if (nameLen > 40) return 46; // 2 lines
+  return 34; // 1 line standard row
 }
 
 /**
- * Safe Single A4 page capacity:
- * To guarantee the bottom footer (legal division + digital signature slot) is NEVER
- * cut off or "drained" beyond the 1123px A4 boundary, a single page can hold up to 4 standard items
- * (or 5 very short items without descriptions).
- * 
- * Once line items exceed this capacity (e.g. 6 items or items with long descriptions),
- * the document cleanly paginates to a new A4 page.
+ * Compact Single A4 page capacity:
+ * Total A4 height: 1123px.
+ * Non-item overhead (compact Header + Client + thead + Terms & Totals + Footer): ~520px.
+ * Available height for items = 1123 - 520 = ~600px.
+ * Safe limit for a single page with zero clipping of the footer is 460px (up to 8-9 items).
  */
-export const SINGLE_PAGE_ITEMS_HEIGHT_LIMIT = 210;
-export const SINGLE_PAGE_MAX_ITEMS = 4;
+export const SINGLE_PAGE_ITEMS_HEIGHT_LIMIT = 460;
+export const SINGLE_PAGE_MAX_ITEMS = 8;
 
 /**
  * Paginates document line items across A4 pages:
- * - Single page: <= 4 items (or 5 short items) fitting safely without clipping the footer.
- * - Multi-page (> 4-5 items):
- *   - Page 1: Full Header, Client & Dispatch info, Table (up to 4-7 items depending on height), Running Footer.
- *   - Final Page: Running Header, remaining items, Terms & Banking Details, Financial Summary,
- *     Legal Footer with Digital Signature Slot.
+ * 1. If line items fit on the first A4 page (up to 8 items), keeps everything on 1 clean,
+ *    unclipped page with no second page and no vacant space.
+ * 2. Second page is ONLY created after completely filling the first A4 page.
+ *    Page 1 fills first (up to 8-10 items), and only what exceeds it goes onto subsequent pages.
  */
 export function paginateDocumentItems(items: LineItem[]): PageChunk[] {
   const totalItemsHeight = items.reduce((sum, it) => sum + estimateItemRowHeight(it), 0);
 
-  // If 4 or fewer items and cumulative height is within safe single-page limit:
-  const canFitSinglePage = (items.length <= SINGLE_PAGE_MAX_ITEMS && totalItemsHeight <= 250) ||
-                           (items.length === 5 && totalItemsHeight <= SINGLE_PAGE_ITEMS_HEIGHT_LIMIT);
-
-  if (canFitSinglePage) {
+  // If items fit on the first A4 sheet, keep everything on Page 1
+  if (items.length <= SINGLE_PAGE_MAX_ITEMS && totalItemsHeight <= SINGLE_PAGE_ITEMS_HEIGHT_LIMIT) {
     return [
       {
         pageNumber: 1,
@@ -59,17 +53,14 @@ export function paginateDocumentItems(items: LineItem[]): PageChunk[] {
     ];
   }
 
-  // Multi-page document
+  // Multi-page document: Page 1 fills first!
   const rawChunks: { items: LineItem[]; startIndex: number }[] = [];
 
-  // When total items fit in 2 pages (up to 14 items):
-  if (items.length <= 14) {
-    // For 6 items: Page 1 gets 4 items, Page 2 gets 2 items.
-    // For 7 items: Page 1 gets 4 items, Page 2 gets 3 items.
-    // For 8 items: Page 1 gets 5 items, Page 2 gets 3 items.
-    // For 9 items: Page 1 gets 5 items, Page 2 gets 4 items.
-    // For 10 items: Page 1 gets 6 items, Page 2 gets 4 items.
-    const p2Count = Math.max(2, Math.min(4, Math.floor(items.length / 2)));
+  // When total items fit in 2 pages (up to 16 items):
+  if (items.length <= 16) {
+    // Fill Page 1 first (takes as many as can fit on Page 1, up to 9-10 items)
+    // while keeping at least 2 items on the final page for the terms/totals summary table.
+    const p2Count = Math.max(2, Math.min(5, Math.ceil(items.length * 0.35)));
     const p1Count = items.length - p2Count;
 
     rawChunks.push({
@@ -81,9 +72,9 @@ export function paginateDocumentItems(items: LineItem[]): PageChunk[] {
       startIndex: p1Count
     });
   } else {
-    // 3 or more pages (> 14 items):
-    // Page 1 gets up to 8 items
-    const p1Count = 8;
+    // 3 or more pages (> 16 items):
+    // Fill Page 1 up to 10 items
+    const p1Count = 10;
     rawChunks.push({
       items: items.slice(0, p1Count),
       startIndex: 0
@@ -91,7 +82,7 @@ export function paginateDocumentItems(items: LineItem[]): PageChunk[] {
 
     let offset = p1Count;
     const LAST_PAGE_MAX = 5;
-    const MIDDLE_PAGE_MAX = 10;
+    const MIDDLE_PAGE_MAX = 12;
 
     while (offset < items.length) {
       const remaining = items.length - offset;
