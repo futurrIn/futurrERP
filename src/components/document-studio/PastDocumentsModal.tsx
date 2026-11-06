@@ -136,6 +136,7 @@ export const PastDocumentsModal: React.FC<PastDocumentsModalProps> = ({
       logoUrl: df.logoUrl || '/logo.svg',
       companyName: df.companyName || 'Futurr Innovations and Research',
       companyTagline: df.companyTagline || 'Advanced Humanoid & Quadruped Robotics, High-Tech Stage Deployments & Automation',
+      companyAddress: df.companyAddress || 'first floor Ak building, oppsosite KSRTC, Mannarcad Road, Perinthalmanna, Malappuram, Kerala-679322',
       brandPreset: df.brandPreset || 'Neo-Core',
       badgeBg: df.badgeBg || 'dark',
       signatoryName: df.signatoryName || 'Albin - Operations Lead',

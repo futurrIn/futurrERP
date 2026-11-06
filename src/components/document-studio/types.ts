@@ -59,6 +59,7 @@ export interface DocumentData {
   logoUrl: string;
   companyName: string;
   companyTagline: string;
+  companyAddress?: string;
   brandPreset: 'Neo-Core' | 'Quantum AI' | 'Humanoid' | 'Cyber Shield';
   badgeBg: 'dark' | 'white' | 'clear';
   signatoryName: string;

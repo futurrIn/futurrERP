@@ -111,6 +111,12 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                     <span style={{ color: '#c084fc' }}>•</span>
                     <span style={{ color: '#e9d5ff' }}>R&amp;D Operations</span>
                   </div>
+                  {data.companyAddress && (
+                    <div className="flex items-start gap-1 text-[9.5px] font-medium mt-1.5 leading-snug max-w-md" style={{ color: '#e9d5ff' }}>
+                      <MapPin size={11} style={{ color: '#c084fc' }} className="shrink-0 mt-0.5" />
+                      <span>{data.companyAddress}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -159,12 +165,17 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                     {data.customerCompany}
                   </div>
                 )}
-                {data.venue && (
+                {data.customerAddress ? (
+                  <div className="flex items-start gap-1.5 text-xs font-medium mt-1 leading-relaxed" style={{ color: '#475569', wordSpacing: '0.05em' }}>
+                    <MapPin size={13} style={{ color: '#7c3aed' }} className="shrink-0 mt-0.5" />
+                    <span>{data.customerAddress}</span>
+                  </div>
+                ) : data.venue ? (
                   <div className="flex items-center gap-1.5 text-xs font-medium mt-1" style={{ color: '#475569', wordSpacing: '0.06em' }}>
                     <MapPin size={13} style={{ color: '#7c3aed' }} className="shrink-0" />
                     <span>{data.venue}</span>
                   </div>
-                )}
+                ) : null}
                 {data.customerGst && (
                   <div className="text-[11px] font-mono mt-1" style={{ color: '#64748b' }}>
                     GSTIN:&nbsp;<span className="font-bold" style={{ color: '#0f172a' }}>{data.customerGst}</span>
@@ -379,13 +390,19 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
             }}
           >
             {/* Left Legal Division */}
-            <div className="space-y-1">
+            <div className="space-y-1 max-w-sm">
               <div className="text-xs font-black tracking-wide" style={{ color: '#0f172a', wordSpacing: '0.04em' }}>
                 {data.companyName || 'Futurr Innovations and Research'}
               </div>
-              <div className="text-[11px] font-medium" style={{ color: '#64748b', wordSpacing: '0.04em' }}>
+              <div className="text-[11px] font-semibold" style={{ color: '#6d28d9', wordSpacing: '0.04em' }}>
                 Advanced Robotics &amp; Autonomous Systems Division
               </div>
+              {data.companyAddress && (
+                <div className="text-[10px] font-medium leading-relaxed flex items-start gap-1" style={{ color: '#64748b', wordSpacing: '0.03em' }}>
+                  <MapPin size={11} className="shrink-0 mt-0.5" style={{ color: '#7c3aed' }} />
+                  <span>{data.companyAddress}</span>
+                </div>
+              )}
               <div className="text-[10px]" style={{ color: '#94a3b8', wordSpacing: '0.04em' }}>
                 GST Status:&nbsp;{data.gstType === 'exempt' ? 'Not Applicable (Exempt / Nil)' : `Registered (${data.customerGst || 'Standard'})`}
               </div>
