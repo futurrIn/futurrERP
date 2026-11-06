@@ -76,6 +76,12 @@ export const api = {
       return {
         id: 1,
         companyName: 'Futurr',
+        companyAddress: 'Mumbai, Maharashtra',
+        tagline: 'Advanced Humanoid & Quadruped Robotics, High-Tech Stage Deployments & Automation',
+        bank_name: 'HDFC Bank Ltd',
+        bank_account: '50200088921044',
+        bank_ifsc: 'HDFC0001234',
+        bank_upi: 'futurr@upi',
         primaryColor: '#4f46e5',
         secondaryColor: '#9333ea',
         monthlyBudget: 500000,

@@ -28,27 +28,6 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
   onChange,
   onItemChange
 }) => {
-  const [logoInputUrl, setLogoInputUrl] = useState('');
-
-  // Handle Logo Upload
-  const handleLogoFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        onChange({ logoUrl: reader.result as string });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleApplyLogoUrl = () => {
-    if (logoInputUrl.trim()) {
-      onChange({ logoUrl: logoInputUrl.trim() });
-      setLogoInputUrl('');
-    }
-  };
-
   // Line Items handling
   const handleAddItem = (preset?: Omit<LineItem, 'id'>) => {
     const newItem: LineItem = {
@@ -79,109 +58,35 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* 1. Logo & Branding Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2">
-            <Building2 size={16} className="text-purple-600" />
-            <h3 className="font-bold text-slate-800 text-sm">Futurr Innovations Logo & Branding</h3>
-          </div>
-          <button
-            type="button"
-            onClick={() => onChange({ logoUrl: '/logo.svg' })}
-            className="text-[11px] font-bold text-purple-600 hover:text-purple-700 bg-purple-50 px-2.5 py-1 rounded-md transition-colors"
-          >
-            Preset Logo
-          </button>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-xl border border-slate-200 bg-slate-900 flex items-center justify-center overflow-hidden shrink-0 shadow-inner p-2">
+    <div className="space-y-5">
+      {/* 1. Official Branding Header (Managed in Admin Settings) */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-12 h-12 rounded-xl border border-slate-200 bg-slate-900 flex items-center justify-center overflow-hidden shrink-0 shadow-inner p-1.5">
             {data.logoUrl ? (
               <img src={data.logoUrl} alt="Logo" className="w-full h-full object-contain" />
             ) : (
-              <span className="text-[10px] text-slate-400 font-bold">No Logo</span>
+              <span className="text-[10px] text-white font-black">FUTURR</span>
             )}
           </div>
-
-          <div className="flex-1 space-y-2">
-            <label className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-sm">
-              <Upload size={13} />
-              <span>Upload Logo File</span>
-              <input type="file" accept="image/*" onChange={handleLogoFile} className="hidden" />
-            </label>
-            <p className="text-[10px] text-slate-400">Supports PNG, JPG, SVG, or WebP logo images</p>
+          <div className="min-w-0">
+            <h3 className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+              {data.companyName || 'Futurr Innovations Pvt Ltd'}
+            </h3>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 truncate">
+              Official Logo &amp; Branding loaded from Admin Settings
+            </p>
           </div>
         </div>
 
-        {/* URL Input */}
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <LinkIcon size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Paste logo image URL or data URL..."
-              value={logoInputUrl}
-              onChange={(e) => setLogoInputUrl(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-purple-500 text-slate-700"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={handleApplyLogoUrl}
-            className="px-3 py-1.5 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-900 transition-colors"
-          >
-            Apply
-          </button>
-        </div>
-
-        {/* Brand Presets */}
-        <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-              Brand Theme
-            </span>
-            <div className="flex gap-1.5">
-              {(['Neo-Core', 'Quantum AI', 'Humanoid', 'Cyber Shield'] as const).map(preset => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => onChange({ brandPreset: preset })}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${
-                    data.brandPreset === preset
-                      ? 'bg-purple-600 text-white shadow-sm'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {preset}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-              Badge Background
-            </span>
-            <div className="flex gap-1.5">
-              {(['dark', 'white', 'clear'] as const).map(bg => (
-                <button
-                  key={bg}
-                  type="button"
-                  onClick={() => onChange({ badgeBg: bg })}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-bold capitalize transition-all ${
-                    data.badgeBg === bg
-                      ? 'bg-slate-800 text-white shadow-sm'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {bg}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={() => (window as any).setActiveTab?.('settings')}
+          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 transition-all"
+        >
+          <Building2 size={13} className="text-purple-600" />
+          <span className="hidden sm:inline">Settings</span>
+        </button>
       </div>
 
       {/* 2. Document & Client Details Card */}

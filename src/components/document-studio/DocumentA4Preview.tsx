@@ -5,9 +5,10 @@ import { calculateDocumentTotals, formatINR } from './utils/calculations';
 
 interface DocumentA4PreviewProps {
   data: DocumentData;
+  scale?: number;
 }
 
-export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data }) => {
+export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scale = 1 }) => {
   const totals = calculateDocumentTotals(data);
 
   const getModeBadge = () => {
@@ -37,68 +38,75 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data }) =>
 
   return (
     <div className="w-full flex justify-center py-2 px-1 overflow-x-auto">
-      {/* 
-        Strict ISO A4 Proportion Container
-        Standard A4 at 96 DPI: ~794px width x 1123px height
-      */}
-      <div
-        id="document-a4-sheet"
-        className="w-[794px] min-h-[1123px] bg-white text-slate-800 shadow-2xl rounded-sm flex flex-col justify-between select-text"
-        style={{
-          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          color: '#1e293b',
-          backgroundColor: '#ffffff',
-          boxSizing: 'border-box'
+      <div 
+        style={{ 
+          transform: scale !== 1 ? `scale(${scale})` : undefined, 
+          transformOrigin: 'top center',
+          transition: 'transform 0.2s ease-in-out'
         }}
       >
-        {/* Top Content Area */}
-        <div>
-          {/* Header Banner */}
-          <div
-            className="p-7 text-white flex items-center justify-between"
-            style={{
-              background: 'linear-gradient(135deg, #180928 0%, #2b0c57 55%, #151030 100%)',
-              borderBottom: '3px solid #8b5cf6'
-            }}
-          >
-            {/* Company Info Left */}
-            <div className="flex items-center gap-4">
-              <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center p-2.5 overflow-hidden shadow-lg shrink-0"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)'
-                }}
-              >
-                {data.logoUrl ? (
-                  <img src={data.logoUrl} alt="Logo" className="w-full h-full object-contain" />
-                ) : (
-                  <div className="text-white font-black text-xl">F</div>
-                )}
-              </div>
+        {/* 
+          Strict ISO A4 Proportion Container
+          Standard A4 at 96 DPI: ~794px width x 1123px height
+        */}
+        <div
+          id="document-a4-sheet"
+          className="w-[794px] min-h-[1123px] bg-white text-slate-800 shadow-2xl rounded-sm flex flex-col justify-between select-text"
+          style={{
+            fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            color: '#1e293b',
+            backgroundColor: '#ffffff',
+            boxSizing: 'border-box'
+          }}
+        >
+          {/* Top Content Area */}
+          <div>
+            {/* Header Banner */}
+            <div
+              className="p-7 text-white flex items-center justify-between"
+              style={{
+                background: 'linear-gradient(135deg, #180928 0%, #2b0c57 55%, #151030 100%)',
+                borderBottom: '3px solid #8b5cf6'
+              }}
+            >
+              {/* Company Info Left */}
+              <div className="flex items-center gap-4">
+                <div
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center p-2.5 overflow-hidden shadow-lg shrink-0"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)'
+                  }}
+                >
+                  {data.logoUrl ? (
+                    <img src={data.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                  ) : (
+                    <div className="text-white font-black text-xl">F</div>
+                  )}
+                </div>
 
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-black tracking-tight text-white m-0">
-                    FUTURR INNOVATIONS
-                  </h1>
-                  <span
-                    className="text-[10px] font-bold px-1.5 py-0.5 rounded tracking-widest text-purple-200"
-                    style={{ border: '1px solid rgba(216, 180, 254, 0.4)' }}
-                  >
-                    PVT LTD
-                  </span>
-                </div>
-                <p className="text-xs text-purple-200 font-medium mt-1 leading-snug">
-                  Advanced Humanoid &amp; Quadruped Robotics, High-Tech Stage Deployments &amp; Automation
-                </p>
-                <div className="flex items-center gap-2 text-[10px] text-purple-300 font-bold uppercase tracking-wider mt-1">
-                  <span>Pan-India Deployments</span>
-                  <span>•</span>
-                  <span>R&amp;D Operations</span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-2xl font-black tracking-tight text-white m-0">
+                      {data.companyName || 'FUTURR INNOVATIONS'}
+                    </h1>
+                    <span
+                      className="text-[10px] font-bold px-1.5 py-0.5 rounded tracking-widest text-purple-200"
+                      style={{ border: '1px solid rgba(216, 180, 254, 0.4)' }}
+                    >
+                      PVT LTD
+                    </span>
+                  </div>
+                  <p className="text-xs text-purple-200 font-medium mt-1 leading-snug">
+                    {data.companyTagline || 'Advanced Humanoid & Quadruped Robotics, High-Tech Stage Deployments & Automation'}
+                  </p>
+                  <div className="flex items-center gap-2 text-[10px] text-purple-300 font-bold uppercase tracking-wider mt-1">
+                    <span>Pan-India Deployments</span>
+                    <span>•</span>
+                    <span>R&amp;D Operations</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
             {/* Document Reference & Badge Right */}
             <div className="text-right shrink-0">
@@ -414,6 +422,7 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data }) =>
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

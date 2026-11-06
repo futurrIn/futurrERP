@@ -13,7 +13,9 @@ import {
   User, 
   Sparkles,
   Bot,
-  RefreshCw
+  ZoomIn,
+  ZoomOut,
+  Maximize2
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
@@ -27,6 +29,7 @@ export const DocumentStudio: React.FC = () => {
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<'split' | 'a4'>('split');
   const [isExporting, setIsExporting] = useState(false);
+  const [zoom, setZoom] = useState<number>(0.92);
 
   // Load existing customers for auto-population
   const { data: customers = [] } = useQuery({
@@ -77,6 +80,8 @@ export const DocumentStudio: React.FC = () => {
     gstType: 'exempt',
     gstRate: 18,
     logoUrl: '/logo.svg',
+    companyName: 'FUTURR INNOVATIONS',
+    companyTagline: 'Advanced Humanoid & Quadruped Robotics, High-Tech Stage Deployments & Automation',
     brandPreset: 'Neo-Core',
     badgeBg: 'dark',
     signatoryName: 'Albin - Operations Lead',
@@ -91,18 +96,22 @@ export const DocumentStudio: React.FC = () => {
     }
   });
 
-  // Sync settings when available
+  // Sync settings directly from Admin Settings into Document Studio
   useEffect(() => {
     if (settings) {
       setDocData(prev => ({
         ...prev,
+        companyName: settings.companyName || prev.companyName,
+        companyTagline: settings.tagline || prev.companyTagline,
         logoUrl: settings.logo || prev.logoUrl,
         signatoryName: prev.signatoryName || settings.companyName,
+        signatureDataUrl: prev.signatureDataUrl || settings.signature,
         bankDetails: {
           ...prev.bankDetails,
-          bankName: settings.bankName || prev.bankDetails.bankName,
-          accountNumber: settings.accountNumber || prev.bankDetails.accountNumber,
-          ifsc: settings.ifsc || prev.bankDetails.ifsc
+          bankName: settings.bank_name || prev.bankDetails.bankName,
+          accountNumber: settings.bank_account || prev.bankDetails.accountNumber,
+          ifsc: settings.bank_ifsc || prev.bankDetails.ifsc,
+          upiId: settings.bank_upi || prev.bankDetails.upiId
         }
       }));
     }
@@ -153,11 +162,9 @@ export const DocumentStudio: React.FC = () => {
   // Save/Sync into ERP
   const saveMutation = useMutation({
     mutationFn: async () => {
-      // Calculate total amount
       const sub = docData.items.reduce((s, i) => s + (i.amount || 0), 0);
       const finalAmt = sub + (Number(docData.transportCharges) || 0) - (Number(docData.discount) || 0);
 
-      // Create a sale or invoice record
       const payload = {
         customer_id: docData.customerId || null,
         category: docData.mode === 'quotation' ? 'Quotation / Proposal' : 'Product Sales',
@@ -191,10 +198,8 @@ export const DocumentStudio: React.FC = () => {
   });
 
   return (
-    <div className="space-y-5 animate-in fade-in duration-300">
-      {/* 
-        Print-only stylesheet to enforce strict A4 printing when user uses Ctrl+P or Print Vector 
-      */}
+    <div className="space-y-4 w-full animate-in fade-in duration-300">
+      {/* Print-only stylesheet to enforce strict A4 printing */}
       <style>{`
         @media print {
           body * {
@@ -215,6 +220,7 @@ export const DocumentStudio: React.FC = () => {
             margin: 0 !important;
             padding: 0 !important;
             background: white !important;
+            transform: none !important;
           }
           @page {
             size: A4 portrait;
@@ -224,8 +230,8 @@ export const DocumentStudio: React.FC = () => {
       `}</style>
 
       {/* Top Banner & Mode Navigation Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-4">
-        {/* Row 1: Brand title and pills */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-4 w-full">
+        {/* Row 1: Brand title and customer loader */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center font-black shadow-md shadow-purple-200">
@@ -233,7 +239,9 @@ export const DocumentStudio: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg font-black text-slate-900 tracking-tight">FUTURR INNOVATIONS</h1>
+                <h1 className="text-lg font-black text-slate-900 tracking-tight">
+                  {docData.companyName || 'FUTURR INNOVATIONS'}
+                </h1>
                 <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 bg-purple-100 text-purple-700 rounded-md">
                   DOC STUDIO
                 </span>
@@ -326,7 +334,7 @@ export const DocumentStudio: React.FC = () => {
                 }`}
               >
                 <Eye size={13} />
-                <span>A4 Print View (210×297mm)</span>
+                <span>Full A4 View</span>
               </button>
             </div>
 
@@ -344,11 +352,11 @@ export const DocumentStudio: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      {/* Main Workspace: Full Width Flex Layout */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start w-full">
         {/* Left Column: Form & Customization Controls */}
         {viewMode === 'split' && (
-          <div className="lg:col-span-5 space-y-6">
+          <div className="w-full lg:w-[480px] xl:w-[520px] 2xl:w-[560px] shrink-0 space-y-6">
             <DocumentControls
               data={docData}
               onChange={(updates) => setDocData(prev => ({ ...prev, ...updates }))}
@@ -357,22 +365,61 @@ export const DocumentStudio: React.FC = () => {
           </div>
         )}
 
-        {/* Right Column: Live A4 Preview */}
-        <div className={viewMode === 'split' ? 'lg:col-span-7' : 'lg:col-span-12'}>
-          {/* Action Bar Above Preview */}
-          <div className="bg-slate-900 text-white rounded-2xl p-3 px-4 mb-4 flex flex-wrap items-center justify-between gap-3 shadow-md">
+        {/* Right Column: Live A4 Preview Workspace */}
+        <div className="flex-1 w-full min-w-0">
+          {/* Action & Zoom Bar Above Preview */}
+          <div className="bg-slate-900 text-white rounded-2xl p-3 px-4 mb-4 flex flex-wrap items-center justify-between gap-3 shadow-md w-full">
             <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400">
               <CheckCircle2 size={16} />
-              <span>Real-Time Bi-Directional Synchronized Workspace</span>
+              <span>Real-Time Synchronized Sheet</span>
             </div>
 
+            {/* Zoom Controls */}
             <div className="flex items-center gap-2">
+              <div className="flex items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setZoom(prev => Math.max(0.6, Number((prev - 0.08).toFixed(2))))}
+                  className="p-1.5 text-slate-400 hover:text-white rounded transition-colors"
+                  title="Zoom Out"
+                >
+                  <ZoomOut size={13} />
+                </button>
+                <span className="text-[11px] font-mono font-bold text-slate-300 px-2 select-none">
+                  {Math.round(zoom * 100)}%
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setZoom(prev => Math.min(1.3, Number((prev + 0.08).toFixed(2))))}
+                  className="p-1.5 text-slate-400 hover:text-white rounded transition-colors"
+                  title="Zoom In"
+                >
+                  <ZoomIn size={13} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setZoom(0.92)}
+                  className="text-[10px] font-bold text-slate-400 hover:text-white px-2 py-1 border-l border-slate-700 transition-colors"
+                  title="Reset Zoom"
+                >
+                  Fit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setZoom(1.0)}
+                  className="text-[10px] font-bold text-slate-400 hover:text-white px-2 py-1 border-l border-slate-700 transition-colors"
+                  title="Actual Size"
+                >
+                  100%
+                </button>
+              </div>
+
               <button
                 type="button"
                 onClick={() => setViewMode(prev => prev === 'split' ? 'a4' : 'split')}
-                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold transition-colors"
+                className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold transition-colors"
               >
-                {viewMode === 'split' ? 'Toggle Full A4 View' : 'Toggle Editor View'}
+                {viewMode === 'split' ? 'Full View' : 'Split View'}
               </button>
 
               <button
@@ -382,24 +429,24 @@ export const DocumentStudio: React.FC = () => {
                 title="Print vector PDF via browser"
               >
                 <Printer size={13} />
-                <span>Print Vector</span>
+                <span className="hidden sm:inline">Print Vector</span>
               </button>
 
               <button
                 type="button"
                 disabled={isExporting}
                 onClick={handleExportPDF}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-black transition-all shadow-md shadow-purple-900/50 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-black transition-all shadow-md shadow-purple-900/50 disabled:opacity-50"
               >
                 <Download size={14} />
-                <span>{isExporting ? 'Generating...' : 'Export A4 PDF'}</span>
+                <span>{isExporting ? 'Exporting...' : 'Export PDF'}</span>
               </button>
             </div>
           </div>
 
-          {/* The Live A4 Document Sheet */}
-          <div className="bg-slate-100 p-2 sm:p-6 rounded-2xl border border-slate-200 flex justify-center overflow-x-auto shadow-inner">
-            <DocumentA4Preview data={docData} />
+          {/* Live A4 Stage */}
+          <div className="bg-slate-200/70 p-3 sm:p-6 rounded-2xl border border-slate-200 flex flex-col items-center justify-start min-h-[900px] overflow-x-auto shadow-inner w-full">
+            <DocumentA4Preview data={docData} scale={zoom} />
           </div>
         </div>
       </div>
@@ -407,4 +454,3 @@ export const DocumentStudio: React.FC = () => {
   );
 };
 export default DocumentStudio;
-

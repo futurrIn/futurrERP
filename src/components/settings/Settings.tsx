@@ -50,6 +50,7 @@ const Settings: React.FC = () => {
     // General Form Data
     if (activeTab === 'general') {
       updates.companyName = formData.get('companyName') as string;
+      updates.tagline = formData.get('tagline') as string;
       updates.companyAddress = formData.get('companyAddress') as string;
       updates.supportEmail = formData.get('supportEmail') as string;
       updates.websiteUrl = formData.get('websiteUrl') as string;
@@ -57,6 +58,10 @@ const Settings: React.FC = () => {
       updates.password = formData.get('password') as string;
       updates.primaryColor = formData.get('primaryColor') as string;
       updates.secondaryColor = formData.get('secondaryColor') as string;
+      updates.bank_name = formData.get('bank_name') as string;
+      updates.bank_account = formData.get('bank_account') as string;
+      updates.bank_ifsc = formData.get('bank_ifsc') as string;
+      updates.bank_upi = formData.get('bank_upi') as string;
     }
 
     // Finance Form Data
@@ -159,8 +164,7 @@ const Settings: React.FC = () => {
         {[
           { id: 'general', label: 'General & Branding', icon: SettingsIcon },
           { id: 'org', label: 'Organization', icon: Users },
-          { id: 'finance', label: 'Finance Config', icon: CreditCard },
-          { id: 'crm', label: 'Sales CRM', icon: Target }
+          { id: 'finance', label: 'Finance Config', icon: CreditCard }
         ].map(tab => (
           <button
             key={tab.id}
@@ -187,6 +191,10 @@ const Settings: React.FC = () => {
                   <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                   <input name="companyName" defaultValue={settings.companyName} className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Company Tagline / Subtitle</label>
+                <input name="tagline" defaultValue={settings.tagline || 'Advanced Humanoid & Quadruped Robotics, High-Tech Stage Deployments & Automation'} placeholder="e.g. Advanced Humanoid & Quadruped Robotics..." className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700">GST / Tax ID</label>
@@ -237,12 +245,12 @@ const Settings: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
               <div className="space-y-3">
                 <label className="text-sm font-medium text-slate-700 flex items-center justify-between">
-                  <span>Company Logo</span>
+                  <span>Company Logo (For Header & Official Documents)</span>
                   <ImageIcon size={16} className="text-slate-400" />
                 </label>
                 <div className="flex items-center gap-4">
                   {settings.logo && (
-                    <img src={settings.logo} alt="Logo" className="h-12 object-contain bg-slate-50 p-1 rounded-lg border border-slate-200" />
+                    <img src={settings.logo} alt="Logo" className="h-12 w-12 object-contain bg-slate-900 p-1.5 rounded-xl border border-slate-200" />
                   )}
                   <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'logo')} className="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
                 </div>
@@ -250,7 +258,7 @@ const Settings: React.FC = () => {
 
               <div className="space-y-3">
                 <label className="text-sm font-medium text-slate-700 flex items-center justify-between">
-                  <span>Authorized Signature</span>
+                  <span>Authorized Signature (For Quotations & Invoices)</span>
                   <FileSignature size={16} className="text-slate-400" />
                 </label>
                 <div className="flex items-center gap-4">
@@ -259,6 +267,27 @@ const Settings: React.FC = () => {
                   )}
                   <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'signature')} className="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
                 </div>
+              </div>
+            </div>
+
+            <h3 className="font-bold text-xl border-b border-slate-100 pb-4 pt-4">Official Settlement & Bank Details</h3>
+            <p className="text-xs text-slate-500 -mt-4">These details will automatically appear on all Quotations, Tax Invoices, and Payment Receipts.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Bank Name</label>
+                <input name="bank_name" defaultValue={settings.bank_name || 'HDFC Bank Ltd'} placeholder="e.g. HDFC Bank Ltd" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Account Number</label>
+                <input name="bank_account" defaultValue={settings.bank_account || '50200088921044'} placeholder="e.g. 50200088921044" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all font-mono" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">IFSC Code</label>
+                <input name="bank_ifsc" defaultValue={settings.bank_ifsc || 'HDFC0001234'} placeholder="e.g. HDFC0001234" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all font-mono" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">UPI ID / VPA</label>
+                <input name="bank_upi" defaultValue={settings.bank_upi || 'futurr@upi'} placeholder="e.g. futurr@upi" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all font-mono" />
               </div>
             </div>
 
@@ -296,14 +325,6 @@ const Settings: React.FC = () => {
 
           {renderArrayManager('Expense Categories', 'categories', settings.categories, newCategory, setNewCategory, Activity, 'Add new expense category...')}
           {renderArrayManager('Payment Methods', 'finance_payment_methods', settings.finance_payment_methods, newPaymentMethod, setNewPaymentMethod, CreditCard, 'Add new payment method...')}
-        </div>
-      )}
-
-      {activeTab === 'crm' && (
-        <div className="space-y-6 animate-in fade-in">
-          {renderArrayManager('Products & Services', 'crm_services', settings.crm_services, newService, setNewService, Briefcase, 'Add a product or service...')}
-          {renderArrayManager('Lead Sources', 'crm_lead_sources', settings.crm_lead_sources, newLeadSource, setNewLeadSource, Globe, 'Add a lead source (e.g. LinkedIn)...')}
-          {renderArrayManager('Pipeline Stages', 'crm_pipeline_stages', settings.crm_pipeline_stages, newPipelineStage, setNewPipelineStage, Target, 'Add a pipeline stage (e.g. Meeting Scheduled)...')}
         </div>
       )}
 

@@ -221,7 +221,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
         </header>
 
         {/* Page Body */}
-        <div className="p-6 max-w-7xl mx-auto">
+        <div className={cn(
+          "p-4 sm:p-6",
+          activeTab === 'document-studio' ? "w-full max-w-none" : "max-w-7xl mx-auto"
+        )}>
           {children}
         </div>
       </main>
