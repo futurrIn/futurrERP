@@ -462,7 +462,7 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
 
               {/* Bottom Section: Legal Footer on Every Page */}
               <div
-                className="p-7 flex items-end justify-between shrink-0"
+                className="px-7 py-4 flex items-end justify-between shrink-0"
                 style={{
                   borderTop: '1px solid #e2e8f0',
                   backgroundColor: '#ffffff'
@@ -485,7 +485,7 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                     Advanced Robotics &amp; Autonomous Systems Division
                   </div>
                   {data.companyAddress && (
-                    <div className="text-[10px] font-medium leading-relaxed flex items-start gap-1" style={{ color: '#64748b', wordSpacing: '0.03em' }}>
+                    <div className="text-[9.5px] font-medium leading-snug flex items-start gap-1 line-clamp-2" style={{ color: '#64748b', wordSpacing: '0.03em' }}>
                       <MapPin size={11} className="shrink-0 mt-0.5" style={{ color: '#7c3aed' }} />
                       <span>{data.companyAddress}</span>
                     </div>
@@ -498,7 +498,7 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                 {/* Right: Signature Slot on Last Page OR Continuation Notice on Earlier Pages */}
                 {page.isLastPage ? (
                   <div
-                    className="w-64 p-3 rounded-xl text-center space-y-1 shrink-0"
+                    className="w-64 p-2.5 rounded-xl text-center space-y-1 shrink-0"
                     style={{
                       backgroundColor: '#faf5ff',
                       border: '1px dashed #c084fc'
@@ -509,7 +509,7 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                     </div>
 
                     {/* Signature Render */}
-                    <div className="h-12 flex items-center justify-center">
+                    <div className="h-10 flex items-center justify-center">
                       {data.signatureDataUrl ? (
                         <img
                           src={data.signatureDataUrl}
@@ -540,7 +540,7 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                   </div>
                 ) : (
                   <div
-                    className="w-64 p-3 rounded-xl text-center flex flex-col items-center justify-center space-y-1 shrink-0"
+                    className="w-64 p-2.5 rounded-xl text-center flex flex-col items-center justify-center space-y-1 shrink-0"
                     style={{
                       backgroundColor: '#f8fafc',
                       border: '1px dashed #cbd5e1'
