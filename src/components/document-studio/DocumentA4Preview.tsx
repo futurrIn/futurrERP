@@ -277,7 +277,7 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                 )}
 
                 {/* Line Items Table */}
-                <div className="p-7">
+                <div className="px-7 pt-4 pb-2">
                   <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ borderBottom: '2px solid #0f172a' }}>
@@ -312,15 +312,15 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                               backgroundColor: idx % 2 === 0 ? '#ffffff' : '#fafafa'
                             }}
                           >
-                            <td className="py-3.5 px-3 text-xs font-bold text-center" style={{ color: '#94a3b8' }}>
+                            <td className="py-3 px-3 text-xs font-bold text-center" style={{ color: '#94a3b8' }}>
                               {globalIndex}
                             </td>
-                            <td className="py-3.5 px-3">
-                              <div className="text-xs font-bold" style={{ color: '#0f172a', wordSpacing: '0.06em' }}>
+                            <td className="py-3 px-3">
+                              <div className="text-xs font-bold leading-snug" style={{ color: '#0f172a', wordSpacing: '0.06em' }}>
                                 {item.name || 'Untitled Service'}
                               </div>
                             </td>
-                            <td className="py-3.5 px-3 text-center">
+                            <td className="py-3 px-3 text-center">
                               <span
                                 className="inline-block px-2.5 py-0.5 rounded text-[10px] font-semibold"
                                 style={{
@@ -333,13 +333,13 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                                 {item.category || 'Service'}
                               </span>
                             </td>
-                            <td className="py-3.5 px-3 text-xs font-bold text-center" style={{ color: '#0f172a' }}>
+                            <td className="py-3 px-3 text-xs font-bold text-center" style={{ color: '#0f172a' }}>
                               {item.quantity}
                             </td>
-                            <td className="py-3.5 px-3 text-xs font-medium text-right font-mono" style={{ color: '#334155' }}>
+                            <td className="py-3 px-3 text-xs font-medium text-right font-mono" style={{ color: '#334155' }}>
                               ₹{formatINR(item.rate)}
                             </td>
-                            <td className="py-3.5 px-3 text-xs font-black text-right font-mono" style={{ color: '#0f172a' }}>
+                            <td className="py-3 px-3 text-xs font-black text-right font-mono" style={{ color: '#0f172a' }}>
                               ₹{formatINR(item.amount)}
                             </td>
                           </tr>
@@ -359,7 +359,7 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
 
                 {/* Terms & Totals Split Grid - STRICTLY RENDERED ON LAST PAGE ONLY */}
                 {page.isLastPage && (
-                  <div className="px-7 pb-6 grid grid-cols-12 gap-8 mt-auto">
+                  <div className="px-7 pt-4 pb-6 grid grid-cols-12 gap-8">
                     {/* Left Column: Terms & Banking Details (7 cols) */}
                     <div className="col-span-7 space-y-3">
                       <div>
