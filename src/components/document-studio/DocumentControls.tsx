@@ -1,0 +1,551 @@
+import React, { useState } from 'react';
+import { 
+  Building2, 
+  FileText, 
+  Calendar, 
+  MapPin, 
+  Upload, 
+  Trash2, 
+  Plus, 
+  Percent, 
+  CreditCard,
+  Sparkles,
+  Link as LinkIcon,
+  Check
+} from 'lucide-react';
+import { DocumentData, LineItem } from './types';
+import SignaturePad from './SignaturePad';
+import CatalogQuickAdd from './CatalogQuickAdd';
+
+interface DocumentControlsProps {
+  data: DocumentData;
+  onChange: (updates: Partial<DocumentData>) => void;
+  onItemChange: (items: LineItem[]) => void;
+}
+
+export const DocumentControls: React.FC<DocumentControlsProps> = ({
+  data,
+  onChange,
+  onItemChange
+}) => {
+  const [logoInputUrl, setLogoInputUrl] = useState('');
+
+  // Handle Logo Upload
+  const handleLogoFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        onChange({ logoUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleApplyLogoUrl = () => {
+    if (logoInputUrl.trim()) {
+      onChange({ logoUrl: logoInputUrl.trim() });
+      setLogoInputUrl('');
+    }
+  };
+
+  // Line Items handling
+  const handleAddItem = (preset?: Omit<LineItem, 'id'>) => {
+    const newItem: LineItem = {
+      id: 'item_' + Date.now() + Math.random().toString(36).substring(2, 6),
+      name: preset?.name || '',
+      category: preset?.category || 'Service',
+      quantity: preset?.quantity || 1,
+      rate: preset?.rate || 0,
+      amount: preset ? preset.quantity * preset.rate : 0
+    };
+    onItemChange([...data.items, newItem]);
+  };
+
+  const handleUpdateItem = (id: string, updates: Partial<LineItem>) => {
+    const updated = data.items.map(item => {
+      if (item.id === id) {
+        const next = { ...item, ...updates };
+        next.amount = (Number(next.quantity) || 0) * (Number(next.rate) || 0);
+        return next;
+      }
+      return item;
+    });
+    onItemChange(updated);
+  };
+
+  const handleRemoveItem = (id: string) => {
+    onItemChange(data.items.filter(item => item.id !== id));
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* 1. Logo & Branding Card */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2">
+            <Building2 size={16} className="text-purple-600" />
+            <h3 className="font-bold text-slate-800 text-sm">Futurr Innovations Logo & Branding</h3>
+          </div>
+          <button
+            type="button"
+            onClick={() => onChange({ logoUrl: '/logo.svg' })}
+            className="text-[11px] font-bold text-purple-600 hover:text-purple-700 bg-purple-50 px-2.5 py-1 rounded-md transition-colors"
+          >
+            Preset Logo
+          </button>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-xl border border-slate-200 bg-slate-900 flex items-center justify-center overflow-hidden shrink-0 shadow-inner p-2">
+            {data.logoUrl ? (
+              <img src={data.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+            ) : (
+              <span className="text-[10px] text-slate-400 font-bold">No Logo</span>
+            )}
+          </div>
+
+          <div className="flex-1 space-y-2">
+            <label className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-sm">
+              <Upload size={13} />
+              <span>Upload Logo File</span>
+              <input type="file" accept="image/*" onChange={handleLogoFile} className="hidden" />
+            </label>
+            <p className="text-[10px] text-slate-400">Supports PNG, JPG, SVG, or WebP logo images</p>
+          </div>
+        </div>
+
+        {/* URL Input */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <LinkIcon size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Paste logo image URL or data URL..."
+              value={logoInputUrl}
+              onChange={(e) => setLogoInputUrl(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-purple-500 text-slate-700"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleApplyLogoUrl}
+            className="px-3 py-1.5 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-900 transition-colors"
+          >
+            Apply
+          </button>
+        </div>
+
+        {/* Brand Presets */}
+        <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+              Brand Theme
+            </span>
+            <div className="flex gap-1.5">
+              {(['Neo-Core', 'Quantum AI', 'Humanoid', 'Cyber Shield'] as const).map(preset => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => onChange({ brandPreset: preset })}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${
+                    data.brandPreset === preset
+                      ? 'bg-purple-600 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+              Badge Background
+            </span>
+            <div className="flex gap-1.5">
+              {(['dark', 'white', 'clear'] as const).map(bg => (
+                <button
+                  key={bg}
+                  type="button"
+                  onClick={() => onChange({ badgeBg: bg })}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-bold capitalize transition-all ${
+                    data.badgeBg === bg
+                      ? 'bg-slate-800 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {bg}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Document & Client Details Card */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2">
+            <FileText size={16} className="text-purple-600" />
+            <h3 className="font-bold text-slate-800 text-sm">Document & Client Details</h3>
+          </div>
+          <span className="text-[10px] font-black text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 uppercase tracking-widest">
+            {data.mode}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Document #
+            </label>
+            <input
+              type="text"
+              value={data.documentNumber}
+              onChange={(e) => onChange({ documentNumber: e.target.value })}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 outline-none focus:border-purple-500 focus:bg-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Issue Date
+            </label>
+            <input
+              type="date"
+              value={data.issueDate}
+              onChange={(e) => onChange({ issueDate: e.target.value })}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-purple-500 focus:bg-white"
+            />
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Customer / Organization Name
+            </label>
+            <input
+              type="text"
+              value={data.customerName}
+              onChange={(e) => onChange({ customerName: e.target.value })}
+              placeholder="e.g. Acme Robotics Lab / IIT Techfest"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-purple-500 focus:bg-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Event / Due Date
+            </label>
+            <input
+              type="date"
+              value={data.dueDate}
+              onChange={(e) => onChange({ dueDate: e.target.value })}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-purple-500 focus:bg-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Location / Venue
+            </label>
+            <input
+              type="text"
+              value={data.venue}
+              onChange={(e) => onChange({ venue: e.target.value })}
+              placeholder="e.g. Mumbai, Maharashtra"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-purple-500 focus:bg-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Client Company / Department
+            </label>
+            <input
+              type="text"
+              value={data.customerCompany}
+              onChange={(e) => onChange({ customerCompany: e.target.value })}
+              placeholder="e.g. Department of AI & Robotics"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-purple-500 focus:bg-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Client GSTIN / Tax ID
+            </label>
+            <input
+              type="text"
+              value={data.customerGst}
+              onChange={(e) => onChange({ customerGst: e.target.value })}
+              placeholder="e.g. 27AAAAA0000A1Z5 (Optional)"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-purple-500 focus:bg-white"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Digital PNG Signature Slot */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <SignaturePad
+          value={data.signatureDataUrl}
+          onChange={(url) => onChange({ signatureDataUrl: url })}
+          signatoryName={data.signatoryName}
+          signatoryDesignation={data.signatoryDesignation}
+          onNameChange={(name) => onChange({ signatoryName: name })}
+          onDesignationChange={(desig) => onChange({ signatoryDesignation: desig })}
+        />
+      </div>
+
+      {/* 4. Line Items Breakdown Card */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div>
+            <h3 className="font-bold text-slate-800 text-sm">Line Items Breakdown</h3>
+            <p className="text-[11px] text-slate-400">Add robots, equipment, software, crew, and custom items</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleAddItem()}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
+          >
+            <Plus size={13} /> Add Item Field
+          </button>
+        </div>
+
+        {/* Quick Add Presets */}
+        <CatalogQuickAdd onAddItem={(item) => handleAddItem(item)} />
+
+        {/* Items List */}
+        <div className="space-y-3 pt-2">
+          {data.items.map((item, index) => (
+            <div
+              key={item.id}
+              className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5 transition-all hover:border-slate-300"
+            >
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-[10px] font-black shrink-0">
+                  {index + 1}
+                </span>
+                <input
+                  type="text"
+                  placeholder="Item / Service description..."
+                  value={item.name}
+                  onChange={(e) => handleUpdateItem(item.id, { name: e.target.value })}
+                  className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-purple-500"
+                />
+                <input
+                  type="text"
+                  placeholder="Category"
+                  value={item.category}
+                  onChange={(e) => handleUpdateItem(item.id, { category: e.target.value })}
+                  className="w-28 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-600 outline-none focus:border-purple-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveItem(item.id)}
+                  className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
+                  title="Remove item"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200/60 text-xs">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Qty / Days
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={item.quantity}
+                    onChange={(e) => handleUpdateItem(item.id, { quantity: Number(e.target.value) || 0 })}
+                    className="w-full px-2.5 py-1 bg-white border border-slate-200 rounded-md text-xs font-bold text-slate-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Rate (₹)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={item.rate}
+                    onChange={(e) => handleUpdateItem(item.id, { rate: Number(e.target.value) || 0 })}
+                    className="w-full px-2.5 py-1 bg-white border border-slate-200 rounded-md text-xs font-bold text-slate-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Line Total
+                  </label>
+                  <div className="px-2.5 py-1 bg-slate-100 rounded-md text-xs font-black text-slate-800 flex items-center justify-end">
+                    ₹{item.amount?.toLocaleString('en-IN')}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {data.items.length === 0 && (
+            <div className="text-center p-6 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-slate-400 text-xs font-medium">
+              No line items added yet. Click &quot;Add Item Field&quot; or choose a catalog preset above.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 5. Additional Charges, Taxes & Terms Card */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+        <h3 className="font-bold text-slate-800 text-sm border-b border-slate-100 pb-3 flex items-center gap-2">
+          <Percent size={16} className="text-purple-600" />
+          <span>Taxes, Logistics & Banking Terms</span>
+        </h3>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Transport & Logistics (₹)
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={data.transportCharges}
+              onChange={(e) => onChange({ transportCharges: Number(e.target.value) || 0 })}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 outline-none focus:border-purple-500 focus:bg-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Discount (₹)
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={data.discount}
+              onChange={(e) => onChange({ discount: Number(e.target.value) || 0 })}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 outline-none focus:border-purple-500 focus:bg-white"
+            />
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              GST Calculation Type
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => onChange({ gstType: 'exempt' })}
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                  data.gstType === 'exempt'
+                    ? 'bg-purple-600 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                Not Applicable (Exempt / Nil)
+              </button>
+              <button
+                type="button"
+                onClick={() => onChange({ gstType: 'cgst_sgst', gstRate: 18 })}
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                  data.gstType === 'cgst_sgst'
+                    ? 'bg-purple-600 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                CGST + SGST (9% + 9%)
+              </button>
+              <button
+                type="button"
+                onClick={() => onChange({ gstType: 'igst', gstRate: 18 })}
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                  data.gstType === 'igst'
+                    ? 'bg-purple-600 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                IGST (18%)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Banking & Terms */}
+        <div className="space-y-3 pt-2 border-t border-slate-100">
+          <div>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Terms & Conditions
+            </label>
+            <textarea
+              rows={2}
+              value={data.termsAndConditions}
+              onChange={(e) => onChange({ termsAndConditions: e.target.value })}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 outline-none focus:border-purple-500 focus:bg-white resize-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                Bank Name
+              </label>
+              <input
+                type="text"
+                value={data.bankDetails.bankName}
+                onChange={(e) => onChange({
+                  bankDetails: { ...data.bankDetails, bankName: e.target.value }
+                })}
+                className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-md text-xs font-medium text-slate-800"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                Account Number
+              </label>
+              <input
+                type="text"
+                value={data.bankDetails.accountNumber}
+                onChange={(e) => onChange({
+                  bankDetails: { ...data.bankDetails, accountNumber: e.target.value }
+                })}
+                className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-md text-xs font-medium text-slate-800"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                IFSC Code
+              </label>
+              <input
+                type="text"
+                value={data.bankDetails.ifsc}
+                onChange={(e) => onChange({
+                  bankDetails: { ...data.bankDetails, ifsc: e.target.value }
+                })}
+                className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-md text-xs font-medium text-slate-800"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                UPI ID / VPA
+              </label>
+              <input
+                type="text"
+                value={data.bankDetails.upiId}
+                onChange={(e) => onChange({
+                  bankDetails: { ...data.bankDetails, upiId: e.target.value }
+                })}
+                className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-md text-xs font-medium text-slate-800"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+export default DocumentControls;
+

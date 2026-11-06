@@ -26,12 +26,7 @@ import InvestorManager from './components/capital/InvestorManager';
 import InvestorProfile from './components/capital/InvestorProfile';
 import NewInvestmentForm from './components/capital/NewInvestmentForm';
 import ReportsView from './components/reports/ReportsView';
-import SalesDashboard from './components/sales/SalesDashboard';
-import SalesActivityForm from './components/sales/SalesActivityForm';
-import LeadManager from './components/sales/LeadManager';
-import LeadProfile from './components/sales/LeadProfile';
-import FollowUps from './components/sales/FollowUps';
-import SalesPipeline from './components/sales/SalesPipeline';
+import DocumentStudio from './components/document-studio/DocumentStudio';
 
 import { 
   QueryClient, 
@@ -50,7 +45,6 @@ const AppContent: React.FC = () => {
   const [editingExpense, setEditingExpense] = useState<any>(null);
   const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
-  const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
   const [selectedInvestorId, setSelectedInvestorId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -104,10 +98,9 @@ const AppContent: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        if (profile?.role === 'Sales Manager' || profile?.role === 'Sales Executive' || profile?.department?.toLowerCase() === 'sales') {
-          return <SalesDashboard setActiveTab={setActiveTab} />;
-        }
         return <Dashboard onNavigateToHistory={() => setActiveTab(profile?.role === 'Admin' || profile?.role === 'Accountant' ? 'sales-history' : 'expense-history')} />;
+      case 'document-studio':
+        return <DocumentStudio />;
       case 'receipt-generator':
         return (
           <ReceiptGenerator 
@@ -151,29 +144,6 @@ const AppContent: React.FC = () => {
         return <NewInvestmentForm onBack={() => setActiveTab('capital')} />;
       case 'reports':
         return <ReportsView />;
-      case 'sales-dashboard':
-        return <SalesDashboard setActiveTab={setActiveTab} />;
-      case 'sales-activities':
-        return <SalesActivityForm />;
-      case 'sales-leads':
-        return <LeadManager setActiveTab={setActiveTab} setSelectedLeadId={setSelectedLeadId} />;
-      case 'sales-pipeline':
-        return <SalesPipeline setActiveTab={setActiveTab} setSelectedLeadId={setSelectedLeadId} />;
-      case 'lead-profile':
-        if (!selectedLeadId) return <LeadManager setActiveTab={setActiveTab} setSelectedLeadId={setSelectedLeadId} />;
-        return <LeadProfile leadId={selectedLeadId} setActiveTab={setActiveTab} />;
-      case 'sales-followups':
-        return <FollowUps setActiveTab={setActiveTab} setSelectedLeadId={setSelectedLeadId} />;
-      case 'sales-meetings':
-      case 'sales-quotations':
-        return (
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <h2 className="text-2xl font-black text-slate-800 mb-2">Coming Soon</h2>
-              <p className="text-slate-500 font-medium">This module is under development.</p>
-            </div>
-          </div>
-        );
       case 'expense-generator':
         return (
           <ExpenseForm 
