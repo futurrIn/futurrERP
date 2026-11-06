@@ -32,6 +32,7 @@ import DocumentA4Preview from './DocumentA4Preview';
 import PastDocumentsModal from './PastDocumentsModal';
 import { exportA4PDF, triggerA4Print } from './utils/pdfExport';
 import { calculateDocumentTotals, formatINR } from './utils/calculations';
+import { paginateDocumentItems } from './utils/pagination';
 
 interface DocumentStudioProps {
   initialData?: DocumentData | null;
@@ -151,6 +152,7 @@ export const DocumentStudio: React.FC<DocumentStudioProps> = ({
   }, [initialData]);
 
   const totals = calculateDocumentTotals(docData);
+  const pageCount = paginateDocumentItems(docData.items).length;
 
   // Auto-persist draft to localStorage on any change so user inputs never vanish
   useEffect(() => {
@@ -769,9 +771,14 @@ export const DocumentStudio: React.FC<DocumentStudioProps> = ({
           {/* Action & Zoom Bar Above Preview */}
           <div className="bg-slate-900 text-white rounded-2xl p-3 px-3 sm:px-4 mb-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-md w-full">
             <div className="flex items-center justify-between sm:justify-start gap-2 text-xs font-semibold text-emerald-400">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <CheckCircle2 size={16} className="shrink-0" />
                 <span className="truncate">Synchronized A4 Sheet</span>
+                {pageCount > 1 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                    {pageCount} Pages
+                  </span>
+                )}
               </div>
               <div className="sm:hidden font-mono font-bold text-white text-xs bg-slate-800 px-2 py-0.5 rounded">
                 ₹{formatINR(totals.grandTotal)}

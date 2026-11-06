@@ -3,12 +3,6 @@ import html2canvas from 'html2canvas-pro';
 import { toast } from 'react-hot-toast';
 
 export async function exportA4PDF(elementId: string, filename: string): Promise<boolean> {
-  const element = document.getElementById(elementId);
-  if (!element) {
-    toast.error('Document preview element not found');
-    return false;
-  }
-
   const toastId = toast.loading('Rendering high-clarity A4 PDF...');
 
   // Save the transform state of the preview wrapper to avoid zoom-induced text metrics distortion
@@ -29,32 +23,21 @@ export async function exportA4PDF(elementId: string, filename: string): Promise<
     }
 
     // Allow DOM to settle at unscaled layout
-    await new Promise((resolve) => setTimeout(resolve, 60));
+    await new Promise((resolve) => setTimeout(resolve, 80));
 
-    // html2canvas-pro natively parses oklch, lab, and modern CSS color spaces
-    const canvas = await html2canvas(element, {
-      scale: 2.5, // 2.5x retina clarity for ultra-sharp typography
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-      onclone: (clonedDoc, clonedEl) => {
-        // Strip any residual transforms from ancestors in cloned document
-        let cur: HTMLElement | null = clonedEl;
-        while (cur && cur !== clonedDoc.body) {
-          cur.style.transform = 'none';
-          cur.style.transition = 'none';
-          cur = cur.parentElement;
-        }
-
-        // Enforce explicit spacing and clean font stack
-        clonedEl.style.fontFamily = '"Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Arial, sans-serif';
-        clonedEl.style.letterSpacing = '0.015em';
-        clonedEl.style.wordSpacing = '0.04em';
+    // Find all individual A4 page elements
+    let pageElements = Array.from(document.querySelectorAll<HTMLElement>('.document-a4-page'));
+    if (pageElements.length === 0) {
+      const fallbackEl = document.getElementById(elementId) || document.getElementById('document-a4-sheet');
+      if (fallbackEl) {
+        pageElements = [fallbackEl];
       }
-    });
+    }
 
-    // High quality JPEG for crisp text with small file size (~200KB - 300KB)
-    const imgData = canvas.toDataURL('image/jpeg', 0.88);
+    if (pageElements.length === 0) {
+      toast.error('Document preview elements not found', { id: toastId });
+      return false;
+    }
 
     const pdf = new jsPDF({
       orientation: 'portrait',
@@ -67,10 +50,49 @@ export async function exportA4PDF(elementId: string, filename: string): Promise<
     const pdfWidth = 210;
     const pdfHeight = 297;
 
-    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
-    pdf.save(filename.endsWith('.pdf') ? filename : `${filename}.pdf`);
+    for (let i = 0; i < pageElements.length; i++) {
+      const pageEl = pageElements[i];
+      if (i > 0) {
+        pdf.addPage('a4', 'portrait');
+      }
 
-    toast.success('High-clarity A4 PDF downloaded successfully!', { id: toastId });
+      // html2canvas-pro natively parses modern CSS color spaces
+      const canvas = await html2canvas(pageEl, {
+        scale: 2.5, // 2.5x retina clarity for ultra-sharp typography
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        onclone: (clonedDoc, clonedEl) => {
+          // Strip any residual transforms from ancestors in cloned document
+          let cur: HTMLElement | null = clonedEl;
+          while (cur && cur !== clonedDoc.body) {
+            cur.style.transform = 'none';
+            cur.style.transition = 'none';
+            cur = cur.parentElement;
+          }
+
+          // Enforce explicit spacing and clean font stack
+          clonedEl.style.fontFamily = '"Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Arial, sans-serif';
+          clonedEl.style.letterSpacing = '0.015em';
+          clonedEl.style.wordSpacing = '0.04em';
+          clonedEl.style.marginBottom = '0px';
+        }
+      });
+
+      // High quality JPEG for crisp text with small file size (~200KB - 300KB per page)
+      const imgData = canvas.toDataURL('image/jpeg', 0.88);
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+    }
+
+    const finalName = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
+    pdf.save(finalName);
+
+    toast.success(
+      pageElements.length > 1
+        ? `Multi-page PDF (${pageElements.length} pages) downloaded successfully!`
+        : 'High-clarity A4 PDF downloaded successfully!',
+      { id: toastId }
+    );
     return true;
   } catch (error: any) {
     console.error('PDF Export Error:', error);
