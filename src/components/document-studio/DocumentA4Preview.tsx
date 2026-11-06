@@ -39,6 +39,7 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
   return (
     <div className="w-full flex justify-center py-2 px-1 overflow-x-auto">
       <div 
+        id="document-a4-scale-wrapper"
         style={{ 
           transform: scale !== 1 ? `scale(${scale})` : undefined, 
           transformOrigin: 'top center',
@@ -50,7 +51,10 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
           id="document-a4-sheet"
           className="w-[794px] min-h-[1123px] bg-white text-slate-800 shadow-2xl rounded-sm flex flex-col justify-between select-text"
           style={{
-            fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontFamily: '"Segoe UI", -apple-system, Roboto, BlinkMacSystemFont, Arial, sans-serif',
+            letterSpacing: '0.012em',
+            wordSpacing: '0.04em',
+            fontKerning: 'normal',
             color: '#0f172a',
             backgroundColor: '#ffffff',
             boxSizing: 'border-box'
@@ -85,10 +89,10 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                 </div>
 
                 <div>
-                  <h1 className="text-2xl font-black tracking-tight m-0 leading-tight" style={{ color: '#ffffff' }}>
+                  <h1 className="text-2xl font-black m-0 leading-tight" style={{ color: '#ffffff', letterSpacing: '0.02em', wordSpacing: '0.08em' }}>
                     {data.companyName || 'Futurr Innovations and Research'}
                   </h1>
-                  <p className="text-xs font-medium mt-1 leading-snug" style={{ color: '#f3e8ff' }}>
+                  <p className="text-xs font-medium mt-1 leading-snug" style={{ color: '#f3e8ff', letterSpacing: '0.01em', wordSpacing: '0.06em' }}>
                     {data.companyTagline || 'Advanced Humanoid & Quadruped Robotics, High-Tech Stage Deployments & Automation'}
                   </p>
                   <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider mt-1" style={{ color: '#e9d5ff' }}>
@@ -114,10 +118,10 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                   {data.documentNumber || 'QUO-FUT-001'}
                 </div>
                 <div className="text-xs font-medium mt-1" style={{ color: '#f3e8ff' }}>
-                  Date: <span className="font-bold" style={{ color: '#ffffff' }}>{data.issueDate || 'YYYY-MM-DD'}</span>
+                  Date:&nbsp;<span className="font-bold" style={{ color: '#ffffff' }}>{data.issueDate || 'YYYY-MM-DD'}</span>
                 </div>
                 <div className="text-xs font-medium" style={{ color: '#f3e8ff' }}>
-                  Event / Due: <span className="font-bold" style={{ color: '#ffffff' }}>{data.dueDate || 'YYYY-MM-DD'}</span>
+                  Event / Due:&nbsp;<span className="font-bold" style={{ color: '#ffffff' }}>{data.dueDate || 'YYYY-MM-DD'}</span>
                 </div>
               </div>
             </div>
@@ -136,23 +140,23 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                 <span className="text-[10px] font-black uppercase tracking-widest block mb-1.5" style={{ color: '#64748b' }}>
                   {data.mode === 'invoice' ? 'BILLED TO:' : data.mode === 'receipt' ? 'RECEIVED FROM:' : 'BILLED / QUOTED TO:'}
                 </span>
-                <div className="text-base font-black leading-tight" style={{ color: '#0f172a' }}>
+                <div className="text-base font-black leading-tight" style={{ color: '#0f172a', wordSpacing: '0.06em' }}>
                   {data.customerName || 'Contact not recorded'}
                 </div>
                 {data.customerCompany && (
-                  <div className="text-xs font-semibold mt-0.5" style={{ color: '#475569' }}>
+                  <div className="text-xs font-semibold mt-0.5" style={{ color: '#475569', wordSpacing: '0.06em' }}>
                     {data.customerCompany}
                   </div>
                 )}
                 {data.venue && (
-                  <div className="flex items-center gap-1.5 text-xs font-medium mt-1" style={{ color: '#475569' }}>
+                  <div className="flex items-center gap-1.5 text-xs font-medium mt-1" style={{ color: '#475569', wordSpacing: '0.06em' }}>
                     <MapPin size={13} style={{ color: '#7c3aed' }} className="shrink-0" />
                     <span>{data.venue}</span>
                   </div>
                 )}
                 {data.customerGst && (
                   <div className="text-[11px] font-mono mt-1" style={{ color: '#64748b' }}>
-                    GSTIN: <span className="font-bold" style={{ color: '#0f172a' }}>{data.customerGst}</span>
+                    GSTIN:&nbsp;<span className="font-bold" style={{ color: '#0f172a' }}>{data.customerGst}</span>
                   </div>
                 )}
               </div>
@@ -162,15 +166,15 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                 <span className="text-[10px] font-black uppercase tracking-widest block mb-1.5" style={{ color: '#64748b' }}>
                   BOOKING &amp; DISPATCH REFERENCE:
                 </span>
-                <div className="text-xs space-y-1" style={{ color: '#475569' }}>
+                <div className="text-xs space-y-1" style={{ color: '#475569', wordSpacing: '0.05em' }}>
                   <div>
-                    Event Date: <span className="font-bold" style={{ color: '#0f172a' }}>{data.dueDate || 'N/A'}</span>
+                    Event Date:&nbsp;<span className="font-bold" style={{ color: '#0f172a' }}>{data.dueDate || 'N/A'}</span>
                   </div>
                   <div>
-                    CRM Inq ID: <span className="font-bold" style={{ color: '#6d28d9' }}>{data.bookingRef || data.documentNumber}</span>
+                    CRM Inq ID:&nbsp;<span className="font-bold" style={{ color: '#6d28d9' }}>{data.bookingRef || data.documentNumber}</span>
                   </div>
                   <div>
-                    Venue: <span className="font-bold" style={{ color: '#0f172a' }}>{data.venue || 'On-site'}</span>
+                    Venue:&nbsp;<span className="font-bold" style={{ color: '#0f172a' }}>{data.venue || 'On-site'}</span>
                   </div>
                 </div>
               </div>
@@ -214,17 +218,18 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                         {idx + 1}
                       </td>
                       <td className="py-3.5 px-3">
-                        <div className="text-xs font-bold" style={{ color: '#0f172a' }}>
+                        <div className="text-xs font-bold" style={{ color: '#0f172a', wordSpacing: '0.06em' }}>
                           {item.name || 'Untitled Service'}
                         </div>
                       </td>
                       <td className="py-3.5 px-3 text-center">
                         <span
-                          className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold"
+                          className="inline-block px-2.5 py-0.5 rounded text-[10px] font-semibold"
                           style={{
                             backgroundColor: '#f1f5f9',
                             border: '1px solid #e2e8f0',
-                            color: '#475569'
+                            color: '#475569',
+                            wordSpacing: '0.05em'
                           }}
                         >
                           {item.category || 'Service'}
@@ -261,27 +266,28 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                   <span className="text-[11px] font-black uppercase tracking-wider block mb-1" style={{ color: '#0f172a' }}>
                     Terms &amp; Banking Details:
                   </span>
-                  <p className="text-[11px] leading-relaxed" style={{ color: '#475569' }}>
+                  <p className="text-[11px] leading-relaxed" style={{ color: '#475569', wordSpacing: '0.06em' }}>
                     {data.termsAndConditions || 'Bank transfer / NEFT / UPI settlement prior to dispatch. All bookings subject to operator safety clearance and technical verification.'}
                   </p>
                 </div>
 
                 {data.bankDetails && (
                   <div
-                    className="p-3 rounded-xl space-y-1 text-[11px]"
+                    className="p-3.5 rounded-xl space-y-1.5 text-[11px]"
                     style={{
                       backgroundColor: '#f8fafc',
-                      border: '1px solid #e2e8f0'
+                      border: '1px solid #e2e8f0',
+                      wordSpacing: '0.04em'
                     }}
                   >
                     <div className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: '#64748b' }}>
                       Direct Settlement Account
                     </div>
                     <div style={{ color: '#334155' }}>
-                      Bank: <span className="font-bold" style={{ color: '#0f172a' }}>{data.bankDetails.bankName || 'HDFC Bank'}</span> • A/C: <span className="font-bold font-mono" style={{ color: '#0f172a' }}>{data.bankDetails.accountNumber || '50200088921044'}</span>
+                      Bank:&nbsp;<span className="font-bold" style={{ color: '#0f172a' }}>{data.bankDetails.bankName || 'HDFC Bank Ltd'}</span>&nbsp;•&nbsp;A/C:&nbsp;<span className="font-bold font-mono" style={{ color: '#0f172a' }}>{data.bankDetails.accountNumber || '50200088921044'}</span>
                     </div>
                     <div style={{ color: '#334155' }}>
-                      IFSC: <span className="font-bold font-mono" style={{ color: '#0f172a' }}>{data.bankDetails.ifsc || 'HDFC0001234'}</span> • UPI: <span className="font-bold font-mono" style={{ color: '#7c3aed' }}>{data.bankDetails.upiId || 'futurr@upi'}</span>
+                      IFSC:&nbsp;<span className="font-bold font-mono" style={{ color: '#0f172a' }}>{data.bankDetails.ifsc || 'HDFC0001234'}</span>&nbsp;•&nbsp;UPI:&nbsp;<span className="font-bold font-mono" style={{ color: '#7c3aed' }}>{data.bankDetails.upiId || 'futurr@upi'}</span>
                     </div>
                   </div>
                 )}
@@ -298,20 +304,20 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                   }}
                 >
                   <div className="flex justify-between items-center text-xs">
-                    <span className="font-medium" style={{ color: '#64748b' }}>Items Subtotal:</span>
+                    <span className="font-medium" style={{ color: '#64748b', wordSpacing: '0.04em' }}>Items Subtotal:</span>
                     <span className="font-bold font-mono" style={{ color: '#0f172a' }}>₹{formatINR(totals.subtotal)}</span>
                   </div>
 
                   {totals.transportCharges > 0 && (
                     <div className="flex justify-between items-center text-xs">
-                      <span className="font-medium" style={{ color: '#64748b' }}>Transport &amp; Logistics:</span>
+                      <span className="font-medium" style={{ color: '#64748b', wordSpacing: '0.04em' }}>Transport &amp; Logistics:</span>
                       <span className="font-bold font-mono" style={{ color: '#0f172a' }}>₹{formatINR(totals.transportCharges)}</span>
                     </div>
                   )}
 
                   {totals.discount > 0 && (
                     <div className="flex justify-between items-center text-xs">
-                      <span className="font-medium" style={{ color: '#059669' }}>Discount:</span>
+                      <span className="font-medium" style={{ color: '#059669', wordSpacing: '0.04em' }}>Discount:</span>
                       <span className="font-bold font-mono" style={{ color: '#059669' }}>-₹{formatINR(totals.discount)}</span>
                     </div>
                   )}
@@ -321,7 +327,7 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                     {data.gstType === 'exempt' ? (
                       <span
                         className="text-[10px] font-bold px-2 py-0.5 rounded"
-                        style={{ backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', color: '#475569' }}
+                        style={{ backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', color: '#475569', wordSpacing: '0.05em' }}
                       >
                         Not Applicable
                       </span>
@@ -334,16 +340,16 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                     className="pt-2.5 flex justify-between items-baseline"
                     style={{ borderTop: '2px solid #0f172a' }}
                   >
-                    <span className="text-sm font-black tracking-tight" style={{ color: '#0f172a' }}>Grand Total:</span>
+                    <span className="text-sm font-black" style={{ color: '#0f172a', wordSpacing: '0.04em' }}>Grand Total:</span>
                     <span
-                      className="text-xl font-black font-mono tracking-tight"
+                      className="text-xl font-black font-mono"
                       style={{ color: '#1e0b36' }}
                     >
                       ₹{formatINR(totals.grandTotal)}
                     </span>
                   </div>
 
-                  <div className="text-[10px] text-center italic mt-1" style={{ color: '#94a3b8' }}>
+                  <div className="text-[10px] text-center italic mt-1" style={{ color: '#94a3b8', wordSpacing: '0.04em' }}>
                     {data.gstType === 'exempt'
                       ? '* GST Not Applicable (Exempt / Nil)'
                       : '* Inclusive of 18% Applicable GST'}
@@ -363,14 +369,14 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
           >
             {/* Left Legal Division */}
             <div className="space-y-1">
-              <div className="text-xs font-black tracking-wide" style={{ color: '#0f172a' }}>
+              <div className="text-xs font-black tracking-wide" style={{ color: '#0f172a', wordSpacing: '0.04em' }}>
                 {data.companyName || 'Futurr Innovations and Research'}
               </div>
-              <div className="text-[11px] font-medium" style={{ color: '#64748b' }}>
+              <div className="text-[11px] font-medium" style={{ color: '#64748b', wordSpacing: '0.04em' }}>
                 Advanced Robotics &amp; Autonomous Systems Division
               </div>
-              <div className="text-[10px]" style={{ color: '#94a3b8' }}>
-                GST Status: {data.gstType === 'exempt' ? 'Not Applicable (Exempt/Nil)' : `Registered (${data.customerGst || 'Standard'})`}
+              <div className="text-[10px]" style={{ color: '#94a3b8', wordSpacing: '0.04em' }}>
+                GST Status:&nbsp;{data.gstType === 'exempt' ? 'Not Applicable (Exempt / Nil)' : `Registered (${data.customerGst || 'Standard'})`}
               </div>
             </div>
 

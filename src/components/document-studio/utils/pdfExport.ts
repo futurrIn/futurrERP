@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
+import html2canvas from 'html2canvas-pro';
 import { toast } from 'react-hot-toast';
 
 export async function exportA4PDF(elementId: string, filename: string): Promise<boolean> {
@@ -11,73 +11,50 @@ export async function exportA4PDF(elementId: string, filename: string): Promise<
 
   const toastId = toast.loading('Rendering high-clarity A4 PDF...');
 
-  // Helper to check if an element is inside the dark header
-  const isInsideDarkHeader = (el: Element | null): boolean => {
-    let cur = el;
-    while (cur && cur !== document.body) {
-      if (cur.id === 'document-header-banner') return true;
-      cur = cur.parentElement;
-    }
-    return false;
-  };
-
-  // Temporarily patch getComputedStyle to safely handle Tailwind v4's oklch colors
-  const originalGetComputedStyle = window.getComputedStyle;
-  window.getComputedStyle = (el, pseudoElt) => {
-    const style = originalGetComputedStyle(el, pseudoElt);
-    const inDark = isInsideDarkHeader(el);
-
-    return new Proxy(style, {
-      get(target, prop) {
-        if (prop === 'getPropertyValue') {
-          return (propertyName: string) => {
-            const value = target.getPropertyValue(propertyName);
-            if (typeof value === 'string' && value.includes('oklch')) {
-              const name = propertyName.toLowerCase();
-              if (name.includes('background')) {
-                return inDark ? '#180928' : '#ffffff';
-              }
-              if (name.includes('border') || name.includes('outline')) {
-                return inDark ? 'rgba(255, 255, 255, 0.2)' : '#e2e8f0';
-              }
-              // Text color
-              return inDark ? '#ffffff' : '#0f172a';
-            }
-            return value;
-          };
-        }
-
-        const value = Reflect.get(target, prop);
-        if (typeof value === 'string' && value.includes('oklch')) {
-          const propStr = String(prop).toLowerCase();
-          if (propStr.includes('background')) {
-            return inDark ? '#180928' : '#ffffff';
-          }
-          if (propStr.includes('border') || propStr.includes('outline')) {
-            return inDark ? 'rgba(255, 255, 255, 0.2)' : '#e2e8f0';
-          }
-          return inDark ? '#ffffff' : '#0f172a';
-        }
-
-        if (typeof value === 'function') {
-          return value.bind(target);
-        }
-        return value;
-      }
-    }) as any;
-  };
+  // Save the transform state of the preview wrapper to avoid zoom-induced text metrics distortion
+  const scaleWrapper = document.getElementById('document-a4-scale-wrapper');
+  const prevTransform = scaleWrapper ? scaleWrapper.style.transform : '';
+  const prevTransition = scaleWrapper ? scaleWrapper.style.transition : '';
 
   try {
-    // scale: 2 produces crisp retina clarity while keeping file size small
+    // Temporarily reset zoom transform so html2canvas measures at true 1:1 A4 geometry (794px x 1123px)
+    if (scaleWrapper) {
+      scaleWrapper.style.transform = 'none';
+      scaleWrapper.style.transition = 'none';
+    }
+
+    // Ensure all web and system fonts are fully loaded
+    if (document.fonts) {
+      await document.fonts.ready;
+    }
+
+    // Allow DOM to settle at unscaled layout
+    await new Promise((resolve) => setTimeout(resolve, 60));
+
+    // html2canvas-pro natively parses oklch, lab, and modern CSS color spaces
     const canvas = await html2canvas(element, {
-      scale: 2,
+      scale: 2.5, // 2.5x retina clarity for ultra-sharp typography
       useCORS: true,
       logging: false,
-      backgroundColor: '#ffffff'
+      backgroundColor: '#ffffff',
+      onclone: (clonedDoc, clonedEl) => {
+        // Strip any residual transforms from ancestors in cloned document
+        let cur: HTMLElement | null = clonedEl;
+        while (cur && cur !== clonedDoc.body) {
+          cur.style.transform = 'none';
+          cur.style.transition = 'none';
+          cur = cur.parentElement;
+        }
+
+        // Enforce explicit spacing and clean font stack
+        clonedEl.style.fontFamily = '"Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Arial, sans-serif';
+        clonedEl.style.letterSpacing = '0.015em';
+        clonedEl.style.wordSpacing = '0.04em';
+      }
     });
 
-    // JPEG at 0.85 delivers crystal-clear text readability with compact file size (~180KB - 250KB)
-    const imgData = canvas.toDataURL('image/jpeg', 0.85);
+    // High quality JPEG for crisp text with small file size (~200KB - 300KB)
+    const imgData = canvas.toDataURL('image/jpeg', 0.88);
 
     const pdf = new jsPDF({
       orientation: 'portrait',
@@ -100,8 +77,11 @@ export async function exportA4PDF(elementId: string, filename: string): Promise<
     toast.error('Failed to generate PDF: ' + (error?.message || 'Unknown error'), { id: toastId });
     return false;
   } finally {
-    // Restore original getComputedStyle
-    window.getComputedStyle = originalGetComputedStyle;
+    // Restore original interactive zoom transform
+    if (scaleWrapper) {
+      scaleWrapper.style.transform = prevTransform;
+      scaleWrapper.style.transition = prevTransition;
+    }
   }
 }
 

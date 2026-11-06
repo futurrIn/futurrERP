@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/api';
+import { toast } from 'react-hot-toast';
 import {
   Building2, Mail, Globe, FileSignature, Image as ImageIcon,
   Plus, X, Save, CheckCircle2, Loader2, CreditCard, Users, Briefcase, 
@@ -32,7 +33,11 @@ const Settings: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] });
       setIsSaved(true);
-      setTimeout(() => setIsSaved(false), 3000);
+      toast.success('Settings saved successfully!');
+      setTimeout(() => setIsSaved(false), 3500);
+    },
+    onError: (err: any) => {
+      toast.error('Failed to save settings: ' + (err?.message || 'Unknown error'));
     }
   });
 
@@ -408,8 +413,28 @@ const Settings: React.FC = () => {
               </div>
             </div>
 
-            <button type="submit" disabled={mutation.isPending} className="btn-primary w-full md:w-auto px-8 flex items-center gap-2 justify-center mt-6">
-              <Save size={18} /> Save Settings
+            <button
+              type="submit"
+              disabled={mutation.isPending}
+              className={`w-full md:w-auto px-8 py-3 rounded-xl font-bold flex items-center gap-2 justify-center mt-6 transition-all shadow-md ${
+                isSaved
+                  ? 'bg-emerald-600 text-white shadow-emerald-200 hover:bg-emerald-700'
+                  : 'btn-primary'
+              }`}
+            >
+              {mutation.isPending ? (
+                <>
+                  <Loader2 className="animate-spin" size={18} /> Saving Settings...
+                </>
+              ) : isSaved ? (
+                <>
+                  <CheckCircle2 size={18} /> Saved!
+                </>
+              ) : (
+                <>
+                  <Save size={18} /> Save Settings
+                </>
+              )}
             </button>
           </form>
         </div>
@@ -435,8 +460,28 @@ const Settings: React.FC = () => {
                 <input name="default_tax_rate" type="number" step="0.1" defaultValue={settings.default_tax_rate || 0} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" />
               </div>
             </div>
-            <button type="submit" disabled={mutation.isPending} className="btn-primary px-8 flex items-center gap-2">
-              <Save size={18} /> Save Config
+            <button
+              type="submit"
+              disabled={mutation.isPending}
+              className={`px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-md ${
+                isSaved
+                  ? 'bg-emerald-600 text-white shadow-emerald-200 hover:bg-emerald-700'
+                  : 'btn-primary'
+              }`}
+            >
+              {mutation.isPending ? (
+                <>
+                  <Loader2 className="animate-spin" size={18} /> Saving Config...
+                </>
+              ) : isSaved ? (
+                <>
+                  <CheckCircle2 size={18} /> Saved!
+                </>
+              ) : (
+                <>
+                  <Save size={18} /> Save Config
+                </>
+              )}
             </button>
           </form>
 
