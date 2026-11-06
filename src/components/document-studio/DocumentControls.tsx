@@ -14,7 +14,6 @@ import {
   Check
 } from 'lucide-react';
 import { DocumentData, LineItem } from './types';
-import SignaturePad from './SignaturePad';
 import CatalogQuickAdd from './CatalogQuickAdd';
 
 interface DocumentControlsProps {
@@ -71,7 +70,7 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
           </div>
           <div className="min-w-0">
             <h3 className="font-bold text-slate-900 text-xs sm:text-sm truncate">
-              {data.companyName || 'Futurr Innovations Pvt Ltd'}
+              {data.companyName || 'Futurr Innovations and Research'}
             </h3>
             <p className="text-[10px] sm:text-[11px] text-slate-500 truncate">
               Official Logo &amp; Branding loaded from Admin Settings
@@ -192,16 +191,69 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
         </div>
       </div>
 
-      {/* 3. Digital PNG Signature Slot */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-        <SignaturePad
-          value={data.signatureDataUrl}
-          onChange={(url) => onChange({ signatureDataUrl: url })}
-          signatoryName={data.signatoryName}
-          signatoryDesignation={data.signatoryDesignation}
-          onNameChange={(name) => onChange({ signatoryName: name })}
-          onDesignationChange={(desig) => onChange({ signatoryDesignation: desig })}
-        />
+      {/* 3. Signatory & Official Authentication */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2">
+            <FileText size={16} className="text-purple-600" />
+            <h3 className="font-bold text-slate-800 text-sm">Signatory &amp; Authentication</h3>
+          </div>
+          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+            Synced from Settings
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Signatory Name
+            </label>
+            <input
+              type="text"
+              value={data.signatoryName}
+              onChange={(e) => onChange({ signatoryName: e.target.value })}
+              placeholder="e.g. Albin - Operations Lead"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-purple-500 focus:bg-white"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Designation
+            </label>
+            <input
+              type="text"
+              value={data.signatoryDesignation}
+              onChange={(e) => onChange({ signatoryDesignation: e.target.value })}
+              placeholder="e.g. Authorized Signatory, Futurr Innovations and Research"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-purple-500 focus:bg-white"
+            />
+          </div>
+        </div>
+
+        {/* Signature Preview from Settings */}
+        <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-28 h-12 rounded-lg bg-white border border-slate-200 p-1 flex items-center justify-center overflow-hidden">
+              {data.signatureDataUrl ? (
+                <img src={data.signatureDataUrl} alt="Signature" className="max-h-full max-w-full object-contain" />
+              ) : (
+                <span className="text-[10px] text-slate-400 italic">No signature set</span>
+              )}
+            </div>
+            <div>
+              <div className="text-xs font-bold text-slate-700">Official Signature Stamp</div>
+              <div className="text-[10px] text-slate-500">Configured in Admin Settings</div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => (window as any).setActiveTab?.('settings')}
+            className="text-[11px] font-bold text-purple-600 hover:text-purple-700 hover:bg-purple-50 px-2.5 py-1.5 rounded-lg border border-purple-200 transition-colors"
+          >
+            Edit in Settings
+          </button>
+        </div>
       </div>
 
       {/* 4. Line Items Breakdown Card */}

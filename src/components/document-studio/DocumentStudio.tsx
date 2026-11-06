@@ -80,18 +80,18 @@ export const DocumentStudio: React.FC = () => {
     gstType: 'exempt',
     gstRate: 18,
     logoUrl: '/logo.svg',
-    companyName: 'FUTURR INNOVATIONS',
+    companyName: 'Futurr Innovations and Research',
     companyTagline: 'Advanced Humanoid & Quadruped Robotics, High-Tech Stage Deployments & Automation',
     brandPreset: 'Neo-Core',
     badgeBg: 'dark',
     signatoryName: 'Albin - Operations Lead',
-    signatoryDesignation: 'Authorized Signatory, Futurr Innovations',
+    signatoryDesignation: 'Authorized Signatory, Futurr Innovations and Research',
     termsAndConditions: 'Bank transfer / NEFT / UPI settlement prior to dispatch. All bookings subject to operator safety clearance and technical verification.',
     bankDetails: {
       bankName: 'HDFC Bank Ltd',
       accountNumber: '50200088921044',
       ifsc: 'HDFC0001234',
-      accountHolder: 'Futurr Innovations Pvt Ltd',
+      accountHolder: 'Futurr Innovations and Research',
       upiId: 'futurr@upi'
     }
   });
@@ -240,7 +240,7 @@ export const DocumentStudio: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-black text-slate-900 tracking-tight">
-                  {docData.companyName || 'FUTURR INNOVATIONS'}
+                  {docData.companyName || 'Futurr Innovations and Research'}
                 </h1>
                 <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 bg-purple-100 text-purple-700 rounded-md">
                   DOC STUDIO
@@ -444,8 +444,8 @@ export const DocumentStudio: React.FC = () => {
             </div>
           </div>
 
-          {/* Live A4 Stage */}
-          <div className="bg-slate-200/70 p-3 sm:p-6 rounded-2xl border border-slate-200 flex flex-col items-center justify-start min-h-[900px] overflow-x-auto shadow-inner w-full">
+          {/* Live A4 Stage: High-contrast Dark Studio Canvas */}
+          <div className="bg-slate-800/95 p-4 sm:p-8 rounded-2xl border border-slate-700/80 flex flex-col items-center justify-start min-h-[920px] overflow-x-auto shadow-2xl w-full">
             <DocumentA4Preview data={docData} scale={zoom} />
           </div>
         </div>

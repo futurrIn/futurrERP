@@ -4,8 +4,9 @@ import { api } from '../../api/api';
 import {
   Building2, Mail, Globe, FileSignature, Image as ImageIcon,
   Plus, X, Save, CheckCircle2, Loader2, CreditCard, Users, Briefcase, 
-  Settings as SettingsIcon, Shield, Activity, Target
+  Settings as SettingsIcon, Shield, Activity, Target, Trash2, PenTool, Upload
 } from 'lucide-react';
+import SignaturePad from '../document-studio/SignaturePad';
 
 const Settings: React.FC = () => {
   const queryClient = useQueryClient();
@@ -15,6 +16,7 @@ const Settings: React.FC = () => {
   });
 
   const [activeTab, setActiveTab] = useState('general');
+  const [signatureTab, setSignatureTab] = useState<'upload' | 'draw'>('upload');
   const [isSaved, setIsSaved] = useState(false);
   
   // Array inputs
@@ -189,7 +191,7 @@ const Settings: React.FC = () => {
                 <label className="text-sm font-medium text-slate-700">Company Name</label>
                 <div className="relative">
                   <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input name="companyName" defaultValue={settings.companyName} className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" />
+                  <input name="companyName" defaultValue={settings.companyName || 'Futurr Innovations and Research'} className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" />
                 </div>
               </div>
               <div className="space-y-2">
@@ -242,30 +244,145 @@ const Settings: React.FC = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-slate-700 flex items-center justify-between">
-                  <span>Company Logo (For Header & Official Documents)</span>
-                  <ImageIcon size={16} className="text-slate-400" />
-                </label>
-                <div className="flex items-center gap-4">
-                  {settings.logo && (
-                    <img src={settings.logo} alt="Logo" className="h-12 w-12 object-contain bg-slate-900 p-1.5 rounded-xl border border-slate-200" />
-                  )}
-                  <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'logo')} className="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
-                </div>
-              </div>
+            {/* Branding: Logo & Signature */}
+            <div className="space-y-6 pt-4 border-t border-slate-100">
+              <h3 className="font-bold text-xl border-b border-slate-100 pb-4">
+                Official Branding &amp; Signatures
+              </h3>
 
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-slate-700 flex items-center justify-between">
-                  <span>Authorized Signature (For Quotations & Invoices)</span>
-                  <FileSignature size={16} className="text-slate-400" />
-                </label>
-                <div className="flex items-center gap-4">
-                  {settings.signature && (
-                    <img src={settings.signature} alt="Signature" className="h-12 object-contain bg-slate-50 p-1 rounded-lg border border-slate-200" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* 1. Company Logo PNG Upload */}
+                <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                      <ImageIcon size={16} className="text-indigo-600" />
+                      <span>Company Logo (PNG Upload)</span>
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Supports transparent PNG, SVG, or high-res JPG. Used in dashboard header and official documents.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="w-20 h-20 rounded-2xl bg-slate-900 border-2 border-slate-200 flex items-center justify-center p-2 overflow-hidden shadow-inner shrink-0">
+                      {settings.logo ? (
+                        <img src={settings.logo} alt="Company Logo" className="w-full h-full object-contain" />
+                      ) : (
+                        <span className="text-[10px] text-slate-400 font-bold text-center">No Logo</span>
+                      )}
+                    </div>
+
+                    <div className="flex-1 space-y-2">
+                      <label className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold cursor-pointer transition-colors shadow-sm">
+                        <Upload size={14} />
+                        <span>Upload PNG Logo</span>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                          onChange={(e) => handleFileUpload(e, 'logo')}
+                          className="hidden"
+                        />
+                      </label>
+
+                      {settings.logo && (
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => mutation.mutate({ ...settings, logo: '' })}
+                            className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={13} /> Remove Logo
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Authorized Signature (PNG Upload or Digital Pad) */}
+                <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                      <FileSignature size={16} className="text-indigo-600" />
+                      <span>Authorized Digital Signature</span>
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Will appear on all generated Quotations, Tax Invoices, and Payment Receipts.
+                    </p>
+                  </div>
+
+                  {/* Toggle between Upload PNG and Draw Pad */}
+                  <div className="flex gap-1.5 p-1 bg-slate-200/70 rounded-xl w-fit">
+                    <button
+                      type="button"
+                      onClick={() => setSignatureTab('upload')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                        signatureTab === 'upload' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <Upload size={13} />
+                      <span>Upload PNG</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSignatureTab('draw')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                        signatureTab === 'draw' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <PenTool size={13} />
+                      <span>Draw on Signature Pad</span>
+                    </button>
+                  </div>
+
+                  {signatureTab === 'upload' ? (
+                    <div className="flex items-center gap-4">
+                      <div className="w-32 h-16 rounded-xl bg-white border border-slate-200 flex items-center justify-center p-2 overflow-hidden shadow-inner shrink-0">
+                        {settings.signature ? (
+                          <img src={settings.signature} alt="Signature" className="max-h-full max-w-full object-contain" />
+                        ) : (
+                          <span className="text-[10px] text-slate-400 font-bold italic">No Signature</span>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold cursor-pointer transition-colors shadow-sm">
+                          <Upload size={14} />
+                          <span>Upload PNG Signature</span>
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            onChange={(e) => handleFileUpload(e, 'signature')}
+                            className="hidden"
+                          />
+                        </label>
+
+                        {settings.signature && (
+                          <div>
+                            <button
+                              type="button"
+                              onClick={() => mutation.mutate({ ...settings, signature: '' })}
+                              className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1 rounded-lg transition-colors"
+                            >
+                              <Trash2 size={13} /> Remove Signature
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <SignaturePad
+                        hideNameFields={true}
+                        value={settings.signature}
+                        onChange={(dataUrl) => {
+                          if (dataUrl) {
+                            mutation.mutate({ ...settings, signature: dataUrl });
+                          }
+                        }}
+                      />
+                    </div>
                   )}
-                  <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'signature')} className="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
                 </div>
               </div>
             </div>
