@@ -8,7 +8,6 @@ import {
   Landmark
 } from 'lucide-react';
 import { DocumentData, LineItem, BankAccount } from './types';
-import CatalogQuickAdd from './CatalogQuickAdd';
 
 interface DocumentControlsProps {
   data: DocumentData;
@@ -190,11 +189,8 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
           </button>
         </div>
 
-        {/* Quick Add Presets */}
-        <CatalogQuickAdd onAddItem={(item) => handleAddItem(item)} />
-
         {/* Items List */}
-        <div className="space-y-3 pt-2">
+        <div className="space-y-3 pt-1">
           {data.items.map((item, index) => (
             <div
               key={item.id}
@@ -267,7 +263,7 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
 
           {data.items.length === 0 && (
             <div className="text-center p-6 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-slate-400 text-xs font-medium">
-              No line items added yet. Click &quot;Add Item Field&quot; or choose a catalog preset above.
+              No line items added yet. Click &quot;Add Item Field&quot; above to add items.
             </div>
           )}
         </div>
