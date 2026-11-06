@@ -38,7 +38,7 @@ export interface DocumentData {
   dueDate: string;
   
   // Client & Dispatch Details
-  customerId?: number | null;
+  customerId?: string | number | null;
   customerName: string;
   customerCompany: string;
   customerAddress: string;

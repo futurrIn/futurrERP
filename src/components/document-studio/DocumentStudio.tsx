@@ -49,10 +49,15 @@ export const DocumentStudio: React.FC<DocumentStudioProps> = ({
   const [zoom, setZoom] = useState<number>(0.85);
   const previewStageRef = useRef<HTMLDivElement>(null);
 
-  // Load existing customers for auto-population
+  // Load existing customers and CRM leads for auto-population
   const { data: customers = [] } = useQuery({
     queryKey: ['customers'],
     queryFn: api.getCustomers
+  });
+
+  const { data: leads = [] } = useQuery({
+    queryKey: ['leads'],
+    queryFn: () => api.getLeads()
   });
 
   const { data: settings } = useQuery({
@@ -218,7 +223,7 @@ export const DocumentStudio: React.FC<DocumentStudioProps> = ({
           companyAddress: settings.companyAddress || prev.companyAddress,
           logoUrl: settings.logo || prev.logoUrl,
           signatoryName: prev.signatoryName || settings.companyName,
-          signatureDataUrl: prev.signatureDataUrl || settings.signature,
+          signatureDataUrl: settings.signature || prev.signatureDataUrl,
           bankDetails: updatedBank
         };
       });
@@ -236,24 +241,52 @@ export const DocumentStudio: React.FC<DocumentStudioProps> = ({
     }));
   };
 
-  // Handle Loading a Customer
-  const handleSelectCustomer = (customerIdStr: string) => {
-    if (!customerIdStr) return;
-    const cid = Number(customerIdStr);
-    const selected = customers.find((c: any) => c.id === cid);
-    if (selected) {
+  // Handle Loading a Customer or CRM Lead
+  const handleSelectCustomer = (selectionIdStr: string) => {
+    if (!selectionIdStr) {
       setDocData(prev => ({
         ...prev,
-        customerId: selected.id,
-        customerName: selected.name || '',
-        customerCompany: selected.company || '',
-        customerEmail: selected.email || '',
-        customerPhone: selected.phone || '',
-        customerGst: selected.gst || '',
-        customerAddress: selected.dynamic_fields?.address || prev.venue || 'Mumbai, Maharashtra',
-        venue: selected.dynamic_fields?.address || prev.venue
+        customerId: null
       }));
-      toast.success(`Loaded details for ${selected.name}`);
+      return;
+    }
+
+    // 1. Search in Registered Customers
+    const selectedCustomer = customers.find((c: any) => String(c.id) === String(selectionIdStr));
+    if (selectedCustomer) {
+      const addr = selectedCustomer.dynamic_fields?.address || selectedCustomer.address || '';
+      setDocData(prev => ({
+        ...prev,
+        customerId: selectedCustomer.id,
+        customerName: selectedCustomer.name || '',
+        customerCompany: selectedCustomer.company || '',
+        customerEmail: selectedCustomer.email || '',
+        customerPhone: selectedCustomer.phone || '',
+        customerGst: selectedCustomer.gst || '',
+        customerAddress: addr || prev.customerAddress || 'Mumbai, Maharashtra',
+        venue: addr || prev.venue || 'Mumbai, Maharashtra'
+      }));
+      toast.success(`Loaded details for customer ${selectedCustomer.name}`);
+      return;
+    }
+
+    // 2. Search in CRM Leads / Inquiries
+    const selectedLead = leads.find((l: any) => String(l.id) === String(selectionIdStr));
+    if (selectedLead) {
+      const addr = selectedLead.address || selectedLead.city || '';
+      setDocData(prev => ({
+        ...prev,
+        customerId: selectedLead.id,
+        customerName: selectedLead.name || selectedLead.contact_name || '',
+        customerCompany: selectedLead.company || '',
+        customerEmail: selectedLead.email || '',
+        customerPhone: selectedLead.phone || '',
+        customerGst: selectedLead.gst || '',
+        customerAddress: addr || prev.customerAddress || 'Mumbai, Maharashtra',
+        venue: addr || prev.venue || 'Mumbai, Maharashtra',
+        bookingRef: selectedLead.inquiry_id ? `FUT-${selectedLead.inquiry_id}` : prev.bookingRef
+      }));
+      toast.success(`Loaded details from CRM lead ${selectedLead.name}`);
     }
   };
 
@@ -384,7 +417,11 @@ export const DocumentStudio: React.FC<DocumentStudioProps> = ({
           signatoryDesignation: docData.signatoryDesignation,
           termsAndConditions: docData.termsAndConditions,
           bankDetails: docData.bankDetails,
-          fullDocData: docData
+          fullDocData: {
+            ...docData,
+            signatureDataUrl: settings?.signature || docData.signatureDataUrl,
+            logoUrl: settings?.logo || docData.logoUrl || '/logo.svg'
+          }
         }
       };
 
@@ -488,16 +525,29 @@ export const DocumentStudio: React.FC<DocumentStudioProps> = ({
           <div className="flex items-center gap-2 w-full md:w-auto">
             <span className="text-xs font-bold text-slate-500 shrink-0">Client:</span>
             <select
-              value={docData.customerId || ''}
+              value={docData.customerId ? String(docData.customerId) : ''}
               onChange={(e) => handleSelectCustomer(e.target.value)}
               className="flex-1 md:flex-initial px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-purple-500/20 max-w-full md:max-w-xs"
             >
               <option value="">Select Existing Customer / Inquiry...</option>
-              {customers.map((c: any) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} {c.company ? `(${c.company})` : ''}
-                </option>
-              ))}
+              {customers.length > 0 && (
+                <optgroup label="Registered Customers">
+                  {customers.map((c: any) => (
+                    <option key={`cust_${c.id}`} value={String(c.id)}>
+                      {c.name} {c.company ? `(${c.company})` : ''}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {leads.length > 0 && (
+                <optgroup label="CRM Inquiries & Leads">
+                  {leads.map((l: any) => (
+                    <option key={`lead_${l.id}`} value={String(l.id)}>
+                      {l.name || l.contact_name} {l.company ? `(${l.company})` : ''}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
           </div>
         </div>
@@ -815,7 +865,14 @@ export const DocumentStudio: React.FC<DocumentStudioProps> = ({
             ref={previewStageRef}
             className="bg-slate-800/95 p-2 sm:p-6 md:p-8 rounded-2xl border border-slate-700/80 flex flex-col items-center justify-start min-h-[520px] sm:min-h-[750px] lg:min-h-[920px] overflow-x-auto shadow-2xl w-full"
           >
-            <DocumentA4Preview data={docData} scale={zoom} />
+            <DocumentA4Preview 
+              data={{
+                ...docData,
+                signatureDataUrl: settings?.signature || docData.signatureDataUrl,
+                logoUrl: settings?.logo || docData.logoUrl || '/logo.svg'
+              }} 
+              scale={zoom} 
+            />
           </div>
         </div>
       </div>
