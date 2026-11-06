@@ -520,6 +520,15 @@ export const api = {
     return updated;
   },
 
+  deleteSale: async (id: number) => {
+    const { error } = await supabase
+      .from('sales')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  },
+
   // --- Payments ---
   getPayments: async (saleId?: number) => {
     let query = supabase.from('payments').select('*').order('created_at', { ascending: false });

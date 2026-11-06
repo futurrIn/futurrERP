@@ -17,14 +17,19 @@ import {
   ZoomOut,
   Maximize2,
   ArrowLeft,
-  ArrowRight
+  ArrowRight,
+  FolderArchive,
+  Edit3,
+  Copy,
+  PlusCircle
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { api } from '../../api/api';
-import { DocumentData, DocumentMode, LineItem } from './types';
+import { DocumentData, DocumentMode, LineItem, BankAccount } from './types';
 import DocumentControls from './DocumentControls';
 import DocumentA4Preview from './DocumentA4Preview';
+import PastDocumentsModal from './PastDocumentsModal';
 import { exportA4PDF, triggerA4Print } from './utils/pdfExport';
 import { calculateDocumentTotals, formatINR } from './utils/calculations';
 
@@ -47,8 +52,8 @@ export const DocumentStudio: React.FC = () => {
     queryFn: api.getSettings
   });
 
-  // Initial Document State
-  const [docData, setDocData] = useState<DocumentData>({
+  // Base template configuration
+  const getInitialDocData = (): DocumentData => ({
     mode: 'quotation',
     documentNumber: `QUO-FUT-${Math.floor(100 + Math.random() * 900)}`,
     issueDate: new Date().toISOString().split('T')[0],
@@ -101,7 +106,34 @@ export const DocumentStudio: React.FC = () => {
     }
   });
 
+  // Persistent document state: Recover from localStorage draft or fallback
+  const [docData, setDocData] = useState<DocumentData>(() => {
+    try {
+      const savedDraft = localStorage.getItem('futurr_doc_studio_draft');
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed && typeof parsed === 'object') {
+          return { ...getInitialDocData(), ...parsed };
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse saved document draft:', e);
+    }
+    return getInitialDocData();
+  });
+
+  const [isPastDocsOpen, setIsPastDocsOpen] = useState(false);
+
   const totals = calculateDocumentTotals(docData);
+
+  // Auto-persist draft to localStorage on any change so user inputs never vanish
+  useEffect(() => {
+    try {
+      localStorage.setItem('futurr_doc_studio_draft', JSON.stringify(docData));
+    } catch (e) {
+      console.warn('Failed to auto-persist document draft:', e);
+    }
+  }, [docData]);
 
   // Dynamic Auto-Fit Zoom calculation based on container or window width
   const handleAutoFit = () => {
@@ -131,21 +163,43 @@ export const DocumentStudio: React.FC = () => {
   // Sync settings directly from Admin Settings into Document Studio
   useEffect(() => {
     if (settings) {
-      setDocData(prev => ({
-        ...prev,
-        companyName: settings.companyName || prev.companyName,
-        companyTagline: settings.tagline || prev.companyTagline,
-        logoUrl: settings.logo || prev.logoUrl,
-        signatoryName: prev.signatoryName || settings.companyName,
-        signatureDataUrl: prev.signatureDataUrl || settings.signature,
-        bankDetails: {
-          ...prev.bankDetails,
-          bankName: settings.bank_name || prev.bankDetails.bankName,
-          accountNumber: settings.bank_account || prev.bankDetails.accountNumber,
-          ifsc: settings.bank_ifsc || prev.bankDetails.ifsc,
-          upiId: settings.bank_upi || prev.bankDetails.upiId
+      setDocData(prev => {
+        let updatedBank = { ...prev.bankDetails };
+
+        // If bank accounts are configured in Admin Settings and no specific account was chosen yet:
+        if (settings.bank_accounts && settings.bank_accounts.length > 0 && !prev.bankDetails?.id) {
+          const defaultBank = settings.bank_accounts.find((b: any) => b.isDefault) || settings.bank_accounts[0];
+          if (defaultBank) {
+            updatedBank = {
+              id: defaultBank.id,
+              label: defaultBank.label,
+              bankName: defaultBank.bankName,
+              accountNumber: defaultBank.accountNumber,
+              ifsc: defaultBank.ifsc,
+              accountHolder: defaultBank.accountHolder,
+              upiId: defaultBank.upiId
+            };
+          }
+        } else if (settings.bank_name && !prev.bankDetails?.bankName) {
+          updatedBank = {
+            ...prev.bankDetails,
+            bankName: settings.bank_name || prev.bankDetails.bankName,
+            accountNumber: settings.bank_account || prev.bankDetails.accountNumber,
+            ifsc: settings.bank_ifsc || prev.bankDetails.ifsc,
+            upiId: settings.bank_upi || prev.bankDetails.upiId
+          };
         }
-      }));
+
+        return {
+          ...prev,
+          companyName: settings.companyName || prev.companyName,
+          companyTagline: settings.tagline || prev.companyTagline,
+          logoUrl: settings.logo || prev.logoUrl,
+          signatoryName: prev.signatoryName || settings.companyName,
+          signatureDataUrl: prev.signatureDataUrl || settings.signature,
+          bankDetails: updatedBank
+        };
+      });
     }
   }, [settings]);
 
@@ -181,6 +235,83 @@ export const DocumentStudio: React.FC = () => {
     }
   };
 
+  // Save current details as permanent default template
+  const handleSaveDefaultTemplate = async () => {
+    try {
+      const templateData = {
+        termsAndConditions: docData.termsAndConditions,
+        transportCharges: docData.transportCharges,
+        gstType: docData.gstType,
+        gstRate: docData.gstRate,
+        discount: docData.discount,
+        signatoryName: docData.signatoryName,
+        signatoryDesignation: docData.signatoryDesignation,
+        bankDetails: docData.bankDetails,
+        defaultItems: docData.items
+      };
+
+      if (settings) {
+        await api.updateSettings({
+          ...settings,
+          doc_defaults: templateData
+        });
+        queryClient.invalidateQueries({ queryKey: ['settings'] });
+      }
+
+      localStorage.setItem('futurr_doc_studio_default_template', JSON.stringify(templateData));
+      toast.success('Current configuration saved as permanent default template!');
+    } catch (err: any) {
+      toast.error('Failed to save default template: ' + (err?.message || 'Unknown error'));
+    }
+  };
+
+  // Reset document to default template
+  const handleResetTemplate = () => {
+    const base = getInitialDocData();
+    const defaults = settings?.doc_defaults;
+    const prefix = docData.mode === 'quotation' ? 'QUO' : docData.mode === 'invoice' ? 'INV' : 'REC';
+    const randNum = Math.floor(100 + Math.random() * 900);
+
+    const resetData: DocumentData = {
+      ...base,
+      id: undefined,
+      mode: docData.mode,
+      documentNumber: `${prefix}-FUT-${randNum}`,
+      termsAndConditions: defaults?.termsAndConditions || base.termsAndConditions,
+      transportCharges: defaults?.transportCharges ?? base.transportCharges,
+      gstType: defaults?.gstType || base.gstType,
+      gstRate: defaults?.gstRate ?? base.gstRate,
+      discount: defaults?.discount ?? 0,
+      signatoryName: defaults?.signatoryName || settings?.companyName || base.signatoryName,
+      signatoryDesignation: defaults?.signatoryDesignation || base.signatoryDesignation,
+      bankDetails: defaults?.bankDetails || (settings?.bank_accounts?.[0] ? {
+        id: settings.bank_accounts[0].id,
+        label: settings.bank_accounts[0].label,
+        bankName: settings.bank_accounts[0].bankName,
+        accountNumber: settings.bank_accounts[0].accountNumber,
+        ifsc: settings.bank_accounts[0].ifsc,
+        accountHolder: settings.bank_accounts[0].accountHolder,
+        upiId: settings.bank_accounts[0].upiId
+      } : base.bankDetails),
+      items: defaults?.defaultItems || base.items
+    };
+
+    setDocData(resetData);
+    try {
+      localStorage.setItem('futurr_doc_studio_draft', JSON.stringify(resetData));
+    } catch (e) {}
+    toast.success('Document reset to default template');
+  };
+
+  // Load a past document into the studio for editing
+  const handleLoadPastDocument = (loadedData: DocumentData, saleId: number) => {
+    setDocData({
+      ...loadedData,
+      id: saleId
+    });
+    toast.success(`Loaded document #${loadedData.documentNumber} for editing!`);
+  };
+
   // PDF Export
   const handleExportPDF = async () => {
     setIsExporting(true);
@@ -191,7 +322,7 @@ export const DocumentStudio: React.FC = () => {
     }
   };
 
-  // Save/Sync into ERP
+  // Save/Sync into ERP (Supports update if editing past doc, or create if new)
   const saveMutation = useMutation({
     mutationFn: async () => {
       const sub = docData.items.reduce((s, i) => s + (i.amount || 0), 0);
@@ -210,22 +341,49 @@ export const DocumentStudio: React.FC = () => {
         dynamic_fields: {
           documentNumber: docData.documentNumber,
           mode: docData.mode,
+          issueDate: docData.issueDate,
+          dueDate: docData.dueDate,
+          customerName: docData.customerName,
+          customerCompany: docData.customerCompany,
+          customerAddress: docData.customerAddress,
+          customerEmail: docData.customerEmail,
+          customerPhone: docData.customerPhone,
+          customerGst: docData.customerGst,
           venue: docData.venue,
           bookingRef: docData.bookingRef,
           items: docData.items,
           transportCharges: docData.transportCharges,
-          signatoryName: docData.signatoryName
+          discount: docData.discount,
+          gstType: docData.gstType,
+          gstRate: docData.gstRate,
+          signatoryName: docData.signatoryName,
+          signatoryDesignation: docData.signatoryDesignation,
+          termsAndConditions: docData.termsAndConditions,
+          bankDetails: docData.bankDetails,
+          fullDocData: docData
         }
       };
 
-      return api.createSale(payload);
+      if (docData.id) {
+        return api.updateSale(docData.id, payload);
+      } else {
+        const created = await api.createSale(payload);
+        if (created?.id) {
+          setDocData(prev => ({ ...prev, id: created.id }));
+        }
+        return created;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
-      toast.success(`${docData.mode.toUpperCase()} saved to ERP records!`);
+      if (docData.id) {
+        toast.success(`Document #${docData.documentNumber} updated successfully!`);
+      } else {
+        toast.success(`${docData.mode.toUpperCase()} #${docData.documentNumber} saved to ERP records!`);
+      }
     },
     onError: (err: any) => {
-      toast.error('Failed to sync to ERP: ' + err.message);
+      toast.error('Failed to sync to ERP: ' + (err?.message || 'Unknown error'));
     }
   });
 
@@ -370,16 +528,28 @@ export const DocumentStudio: React.FC = () => {
               </button>
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+              <button
+                type="button"
+                onClick={() => setIsPastDocsOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-xl text-xs font-bold transition-all shadow-xs"
+                title="Browse and edit past documents"
+              >
+                <FolderArchive size={14} />
+                <span>Past Docs</span>
+              </button>
+
               <button
                 type="button"
                 disabled={saveMutation.isPending}
                 onClick={() => saveMutation.mutate()}
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
-                title="Save to ERP Records"
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm text-white ${
+                  docData.id ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-900/30' : 'bg-slate-800 hover:bg-slate-900'
+                }`}
+                title={docData.id ? `Update record #${docData.id}` : 'Save to ERP Records'}
               >
                 <Save size={14} />
-                <span>Save Record</span>
+                <span>{saveMutation.isPending ? 'Saving...' : docData.id ? 'Update Record' : 'Save Record'}</span>
               </button>
 
               <button
@@ -430,6 +600,60 @@ export const DocumentStudio: React.FC = () => {
         </div>
       </div>
 
+      {/* Active Past Document Editing Banner */}
+      {docData.id && (
+        <div className="bg-amber-500/10 border border-amber-300 text-amber-900 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold shrink-0">
+              <Edit3 size={16} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-black uppercase tracking-wider text-amber-800">
+                  Editing Saved Document
+                </span>
+                <span className="font-mono text-xs font-bold px-2 py-0.5 bg-amber-200/80 rounded text-amber-900">
+                  {docData.documentNumber}
+                </span>
+                <span className="text-[11px] text-amber-700 font-medium">
+                  (ERP Record #{docData.id})
+                </span>
+              </div>
+              <p className="text-[11px] text-amber-700/90 font-medium">
+                Edits will update this database record, or you can duplicate it as a new copy.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                const prefix = docData.mode === 'quotation' ? 'QUO' : docData.mode === 'invoice' ? 'INV' : 'REC';
+                const newDocNum = `${prefix}-FUT-${Math.floor(100 + Math.random() * 900)}`;
+                setDocData(prev => ({
+                  ...prev,
+                  id: undefined,
+                  documentNumber: newDocNum
+                }));
+                toast.success(`Duplicated as new document #${newDocNum}`);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold transition-all shadow-xs"
+            >
+              <Copy size={13} />
+              <span>Duplicate as New</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleResetTemplate}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+            >
+              <PlusCircle size={13} />
+              <span>New Blank</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Workspace: Full Width Responsive Layout */}
       <div className="flex flex-col lg:flex-row gap-6 items-start w-full">
         {/* Left Column: Form Controls (Visible if Split View on Desktop OR Editor Tab on Mobile) */}
@@ -439,6 +663,9 @@ export const DocumentStudio: React.FC = () => {
               data={docData}
               onChange={(updates) => setDocData(prev => ({ ...prev, ...updates }))}
               onItemChange={(items) => setDocData(prev => ({ ...prev, items }))}
+              bankAccounts={settings?.bank_accounts || []}
+              onSaveDefaultTemplate={handleSaveDefaultTemplate}
+              onResetTemplate={handleResetTemplate}
             />
           </div>
         )}
@@ -580,6 +807,13 @@ export const DocumentStudio: React.FC = () => {
           </button>
         </div>
       )}
+
+      {/* Past Documents Archive Browser Modal */}
+      <PastDocumentsModal
+        isOpen={isPastDocsOpen}
+        onClose={() => setIsPastDocsOpen(false)}
+        onLoadDocument={handleLoadPastDocument}
+      />
     </div>
   );
 };

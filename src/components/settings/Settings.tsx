@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/api';
 import { toast } from 'react-hot-toast';
 import {
   Building2, Mail, Globe, FileSignature, Image as ImageIcon,
   Plus, X, Save, CheckCircle2, Loader2, CreditCard, Users, Briefcase, 
-  Settings as SettingsIcon, Shield, Activity, Target, Trash2, PenTool, Upload
+  Settings as SettingsIcon, Shield, Activity, Target, Trash2, PenTool, Upload,
+  Landmark, Check, Edit2
 } from 'lucide-react';
 import SignaturePad from '../document-studio/SignaturePad';
+import { BankAccount } from '../document-studio/types';
 
 const Settings: React.FC = () => {
   const queryClient = useQueryClient();
@@ -20,6 +22,21 @@ const Settings: React.FC = () => {
   const [signatureTab, setSignatureTab] = useState<'upload' | 'draw'>('upload');
   const [isSaved, setIsSaved] = useState(false);
   
+  // Multiple Bank Accounts state
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [isBankModalOpen, setIsBankModalOpen] = useState(false);
+  const [editingBankId, setEditingBankId] = useState<string | null>(null);
+  const [bankForm, setBankForm] = useState<BankAccount>({
+    id: '',
+    bankName: '',
+    accountNumber: '',
+    ifsc: '',
+    accountHolder: 'Futurr Innovations and Research',
+    upiId: '',
+    label: '',
+    isDefault: false
+  });
+
   // Array inputs
   const [newCategory, setNewCategory] = useState('');
   const [newDepartment, setNewDepartment] = useState('');
@@ -27,6 +44,27 @@ const Settings: React.FC = () => {
   const [newService, setNewService] = useState('');
   const [newPipelineStage, setNewPipelineStage] = useState('');
   const [newPaymentMethod, setNewPaymentMethod] = useState('');
+
+  // Initialize multiple bank accounts from settings
+  useEffect(() => {
+    if (settings) {
+      if (Array.isArray(settings.bank_accounts) && settings.bank_accounts.length > 0) {
+        setBankAccounts(settings.bank_accounts);
+      } else {
+        const initialAccount: BankAccount = {
+          id: 'bank_primary',
+          bankName: settings.bank_name || 'HDFC Bank Ltd',
+          accountNumber: settings.bank_account || '50200088921044',
+          ifsc: settings.bank_ifsc || 'HDFC0001234',
+          accountHolder: settings.companyName || 'Futurr Innovations and Research',
+          upiId: settings.bank_upi || 'futurr@upi',
+          label: 'Primary Current Account',
+          isDefault: true
+        };
+        setBankAccounts([initialAccount]);
+      }
+    }
+  }, [settings]);
 
   const mutation = useMutation({
     mutationFn: api.updateSettings,
@@ -40,6 +78,112 @@ const Settings: React.FC = () => {
       toast.error('Failed to save settings: ' + (err?.message || 'Unknown error'));
     }
   });
+
+  // Bank management helpers
+  const handleOpenAddBank = () => {
+    setEditingBankId(null);
+    setBankForm({
+      id: '',
+      bankName: '',
+      accountNumber: '',
+      ifsc: '',
+      accountHolder: settings?.companyName || 'Futurr Innovations and Research',
+      upiId: '',
+      label: '',
+      isDefault: bankAccounts.length === 0
+    });
+    setIsBankModalOpen(true);
+  };
+
+  const handleOpenEditBank = (acc: BankAccount) => {
+    setEditingBankId(acc.id);
+    setBankForm({ ...acc });
+    setIsBankModalOpen(true);
+  };
+
+  const handleSaveBankAccount = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bankForm.bankName.trim() || !bankForm.accountNumber.trim()) {
+      toast.error('Bank Name and Account Number are required');
+      return;
+    }
+
+    let updatedList: BankAccount[];
+    if (editingBankId) {
+      updatedList = bankAccounts.map(b => {
+        if (b.id === editingBankId) {
+          return { ...bankForm, id: editingBankId };
+        }
+        return bankForm.isDefault ? { ...b, isDefault: false } : b;
+      });
+    } else {
+      const newAcc: BankAccount = {
+        ...bankForm,
+        id: 'bank_' + Date.now(),
+        isDefault: bankAccounts.length === 0 || bankForm.isDefault
+      };
+      updatedList = bankAccounts.map(b => newAcc.isDefault ? { ...b, isDefault: false } : b).concat(newAcc);
+    }
+
+    // Ensure at least one default
+    if (!updatedList.some(b => b.isDefault)) {
+      updatedList[0].isDefault = true;
+    }
+
+    setBankAccounts(updatedList);
+    setIsBankModalOpen(false);
+    setEditingBankId(null);
+
+    const defaultAcc = updatedList.find(b => b.isDefault) || updatedList[0];
+    mutation.mutate({
+      ...settings,
+      bank_accounts: updatedList,
+      bank_name: defaultAcc?.bankName,
+      bank_account: defaultAcc?.accountNumber,
+      bank_ifsc: defaultAcc?.ifsc,
+      bank_upi: defaultAcc?.upiId
+    });
+  };
+
+  const handleSetDefaultBank = (id: string) => {
+    const updated = bankAccounts.map(b => ({
+      ...b,
+      isDefault: b.id === id
+    }));
+    setBankAccounts(updated);
+    const defaultAcc = updated.find(b => b.id === id);
+    mutation.mutate({
+      ...settings,
+      bank_accounts: updated,
+      bank_name: defaultAcc?.bankName,
+      bank_account: defaultAcc?.accountNumber,
+      bank_ifsc: defaultAcc?.ifsc,
+      bank_upi: defaultAcc?.upiId
+    });
+    toast.success(`${defaultAcc?.bankName} set as primary bank account!`);
+  };
+
+  const handleDeleteBank = (id: string) => {
+    if (bankAccounts.length <= 1) {
+      toast.error('At least one bank account must remain');
+      return;
+    }
+    const updated = bankAccounts.filter(b => b.id !== id);
+    if (!updated.some(b => b.isDefault)) {
+      updated[0].isDefault = true;
+    }
+    setBankAccounts(updated);
+    const defaultAcc = updated.find(b => b.isDefault) || updated[0];
+    mutation.mutate({
+      ...settings,
+      bank_accounts: updated,
+      bank_name: defaultAcc?.bankName,
+      bank_account: defaultAcc?.accountNumber,
+      bank_ifsc: defaultAcc?.ifsc,
+      bank_upi: defaultAcc?.upiId
+    });
+    toast.success('Bank account removed');
+  };
 
   if (isLoading || !settings) return (
     <div className="flex items-center justify-center h-64">
@@ -65,10 +209,14 @@ const Settings: React.FC = () => {
       updates.password = formData.get('password') as string;
       updates.primaryColor = formData.get('primaryColor') as string;
       updates.secondaryColor = formData.get('secondaryColor') as string;
-      updates.bank_name = formData.get('bank_name') as string;
-      updates.bank_account = formData.get('bank_account') as string;
-      updates.bank_ifsc = formData.get('bank_ifsc') as string;
-      updates.bank_upi = formData.get('bank_upi') as string;
+      updates.bank_accounts = bankAccounts;
+      const defAcc = bankAccounts.find(b => b.isDefault) || bankAccounts[0];
+      if (defAcc) {
+        updates.bank_name = defAcc.bankName;
+        updates.bank_account = defAcc.accountNumber;
+        updates.bank_ifsc = defAcc.ifsc;
+        updates.bank_upi = defAcc.upiId;
+      }
     }
 
     // Finance Form Data
@@ -392,24 +540,103 @@ const Settings: React.FC = () => {
               </div>
             </div>
 
-            <h3 className="font-bold text-xl border-b border-slate-100 pb-4 pt-4">Official Settlement & Bank Details</h3>
-            <p className="text-xs text-slate-500 -mt-4">These details will automatically appear on all Quotations, Tax Invoices, and Payment Receipts.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Bank Name</label>
-                <input name="bank_name" defaultValue={settings.bank_name || 'HDFC Bank Ltd'} placeholder="e.g. HDFC Bank Ltd" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" />
+            {/* Multiple Bank Accounts Section */}
+            <div className="space-y-4 pt-4 border-t border-slate-100">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-bold text-xl text-slate-800">Official Settlement &amp; Bank Accounts</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Configure multiple company bank accounts. Choose a primary default, and easily switch between them on any quotation or invoice.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleOpenAddBank}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-colors border border-indigo-200 self-start sm:self-auto shrink-0"
+                >
+                  <Plus size={15} />
+                  <span>Add Bank Account</span>
+                </button>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Account Number</label>
-                <input name="bank_account" defaultValue={settings.bank_account || '50200088921044'} placeholder="e.g. 50200088921044" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all font-mono" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">IFSC Code</label>
-                <input name="bank_ifsc" defaultValue={settings.bank_ifsc || 'HDFC0001234'} placeholder="e.g. HDFC0001234" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all font-mono" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">UPI ID / VPA</label>
-                <input name="bank_upi" defaultValue={settings.bank_upi || 'futurr@upi'} placeholder="e.g. futurr@upi" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all font-mono" />
+
+              {/* Bank Accounts Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {bankAccounts.map((acc) => (
+                  <div
+                    key={acc.id}
+                    className={`p-4 rounded-2xl border transition-all relative ${
+                      acc.isDefault
+                        ? 'bg-indigo-50/40 border-indigo-300 shadow-sm ring-1 ring-indigo-500/20'
+                        : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${acc.isDefault ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                          <Landmark size={16} />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm text-slate-900">{acc.bankName}</h4>
+                          <span className="text-[10px] font-semibold text-slate-500">{acc.label || 'Business Account'}</span>
+                        </div>
+                      </div>
+
+                      {acc.isDefault ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          <Check size={11} /> Primary Default
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleSetDefaultBank(acc.id)}
+                          className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline"
+                        >
+                          Set as Default
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="space-y-1 text-xs text-slate-600 mt-3 pt-3 border-t border-slate-200/60 font-mono">
+                      <div>
+                        <span className="text-slate-400 font-sans text-[11px] font-medium mr-1.5">A/C:</span>
+                        <span className="font-bold text-slate-800">{acc.accountNumber}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 font-sans text-[11px] font-medium mr-1.5">IFSC:</span>
+                        <span className="font-bold text-slate-800">{acc.ifsc}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 font-sans text-[11px] font-medium mr-1.5">UPI:</span>
+                        <span className="font-bold text-indigo-700">{acc.upiId || 'N/A'}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 mt-3 pt-2 border-t border-slate-200/50">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditBank(acc)}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 hover:text-slate-900 px-2 py-1 rounded hover:bg-white transition-colors"
+                      >
+                        <Edit2 size={12} /> Edit
+                      </button>
+                      {bankAccounts.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteBank(acc.id)}
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-500 hover:text-rose-700 px-2 py-1 rounded hover:bg-rose-50 transition-colors"
+                        >
+                          <Trash2 size={12} /> Delete
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {bankAccounts.length === 0 && (
+                  <div className="col-span-2 text-center p-6 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs font-medium">
+                    No bank accounts configured. Click &quot;Add Bank Account&quot; to add your company settlement account.
+                  </div>
+                )}
               </div>
             </div>
 
@@ -487,6 +714,139 @@ const Settings: React.FC = () => {
 
           {renderArrayManager('Expense Categories', 'categories', settings.categories, newCategory, setNewCategory, Activity, 'Add new expense category...')}
           {renderArrayManager('Payment Methods', 'finance_payment_methods', settings.finance_payment_methods, newPaymentMethod, setNewPaymentMethod, CreditCard, 'Add new payment method...')}
+        </div>
+      )}
+
+      {/* Add / Edit Bank Account Modal */}
+      {isBankModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <Landmark size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-slate-900">
+                    {editingBankId ? 'Edit Bank Account' : 'Add New Bank Account'}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Company settlement account for invoices &amp; receipts
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsBankModalOpen(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveBankAccount} className="p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5 sm:col-span-2">
+                  <label className="text-xs font-bold text-slate-700">Bank Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={bankForm.bankName}
+                    onChange={(e) => setBankForm(prev => ({ ...prev, bankName: e.target.value }))}
+                    placeholder="e.g. HDFC Bank Ltd / ICICI Bank"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white"
+                  />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <label className="text-xs font-bold text-slate-700">Account Label / Nickname</label>
+                  <input
+                    type="text"
+                    value={bankForm.label || ''}
+                    onChange={(e) => setBankForm(prev => ({ ...prev, label: e.target.value }))}
+                    placeholder="e.g. Primary Current Account / Robotics Escrow"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white"
+                  />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <label className="text-xs font-bold text-slate-700">Account Number *</label>
+                  <input
+                    type="text"
+                    required
+                    value={bankForm.accountNumber}
+                    onChange={(e) => setBankForm(prev => ({ ...prev, accountNumber: e.target.value }))}
+                    placeholder="e.g. 50200088921044"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">IFSC Code *</label>
+                  <input
+                    type="text"
+                    required
+                    value={bankForm.ifsc}
+                    onChange={(e) => setBankForm(prev => ({ ...prev, ifsc: e.target.value }))}
+                    placeholder="e.g. HDFC0001234"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white uppercase"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">UPI ID / VPA</label>
+                  <input
+                    type="text"
+                    value={bankForm.upiId}
+                    onChange={(e) => setBankForm(prev => ({ ...prev, upiId: e.target.value }))}
+                    placeholder="e.g. futurr@upi"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white"
+                  />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <label className="text-xs font-bold text-slate-700">Account Holder Name</label>
+                  <input
+                    type="text"
+                    value={bankForm.accountHolder}
+                    onChange={(e) => setBankForm(prev => ({ ...prev, accountHolder: e.target.value }))}
+                    placeholder="e.g. Futurr Innovations and Research"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white"
+                  />
+                </div>
+
+                <div className="sm:col-span-2 flex items-center gap-2 pt-1">
+                  <input
+                    type="checkbox"
+                    id="isDefaultBankCheck"
+                    checked={bankForm.isDefault}
+                    onChange={(e) => setBankForm(prev => ({ ...prev, isDefault: e.target.checked }))}
+                    className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                  />
+                  <label htmlFor="isDefaultBankCheck" className="text-xs font-semibold text-slate-700 cursor-pointer select-none">
+                    Set as default primary account for newly generated documents
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsBankModalOpen(false)}
+                  className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-200 transition-all flex items-center gap-2"
+                >
+                  <Save size={15} />
+                  <span>{editingBankId ? 'Update Bank Account' : 'Save Account'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

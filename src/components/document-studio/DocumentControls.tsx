@@ -3,21 +3,29 @@ import {
   FileText, 
   Trash2, 
   Plus, 
-  Percent 
+  Percent,
+  Save,
+  Landmark
 } from 'lucide-react';
-import { DocumentData, LineItem } from './types';
+import { DocumentData, LineItem, BankAccount } from './types';
 import CatalogQuickAdd from './CatalogQuickAdd';
 
 interface DocumentControlsProps {
   data: DocumentData;
   onChange: (updates: Partial<DocumentData>) => void;
   onItemChange: (items: LineItem[]) => void;
+  bankAccounts?: BankAccount[];
+  onSaveDefaultTemplate?: () => void;
+  onResetTemplate?: () => void;
 }
 
 export const DocumentControls: React.FC<DocumentControlsProps> = ({
   data,
   onChange,
-  onItemChange
+  onItemChange,
+  bankAccounts = [],
+  onSaveDefaultTemplate,
+  onResetTemplate
 }) => {
   // Line Items handling
   const handleAddItem = (preset?: Omit<LineItem, 'id'>) => {
@@ -329,10 +337,10 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
         </div>
 
         {/* Banking & Terms */}
-        <div className="space-y-3 pt-2 border-t border-slate-100">
+        <div className="space-y-3.5 pt-2 border-t border-slate-100">
           <div>
             <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-              Terms & Conditions
+              Terms &amp; Conditions
             </label>
             <textarea
               rows={2}
@@ -341,6 +349,53 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 outline-none focus:border-purple-500 focus:bg-white resize-none"
             />
           </div>
+
+          {/* Quick Select from Configured Bank Accounts */}
+          {bankAccounts && bankAccounts.length > 0 && (
+            <div className="space-y-1.5 p-3 bg-purple-50/50 rounded-xl border border-purple-100">
+              <div className="flex items-center justify-between">
+                <label className="block text-[11px] font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <Landmark size={13} className="text-purple-600" />
+                  <span>Settlement Bank Account</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => (window as any).setActiveTab?.('settings')}
+                  className="text-[10px] font-bold text-purple-600 hover:text-purple-800 hover:underline"
+                >
+                  + Add in Settings
+                </button>
+              </div>
+              <select
+                value={data.bankDetails.id || ''}
+                onChange={(e) => {
+                  const selectedId = e.target.value;
+                  const found = bankAccounts.find(b => b.id === selectedId);
+                  if (found) {
+                    onChange({
+                      bankDetails: {
+                        id: found.id,
+                        label: found.label,
+                        bankName: found.bankName,
+                        accountNumber: found.accountNumber,
+                        ifsc: found.ifsc,
+                        accountHolder: found.accountHolder,
+                        upiId: found.upiId
+                      }
+                    });
+                  }
+                }}
+                className="w-full px-3 py-2 bg-white border border-purple-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-purple-500/20"
+              >
+                <option value="">Select Settlement Bank Account...</option>
+                {bankAccounts.map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.bankName} {acc.label ? `(${acc.label})` : ''} • A/C: {acc.accountNumber} {acc.isDefault ? '★ Default' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
             <div>
@@ -379,7 +434,7 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
                 onChange={(e) => onChange({
                   bankDetails: { ...data.bankDetails, ifsc: e.target.value }
                 })}
-                className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-md text-xs font-medium text-slate-800"
+                className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-md text-xs font-medium text-slate-800 uppercase"
               />
             </div>
             <div>
@@ -394,6 +449,34 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
                 })}
                 className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-md text-xs font-medium text-slate-800"
               />
+            </div>
+          </div>
+
+          {/* Template Defaults Action Bar */}
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+            <span className="text-[10px] text-slate-400 font-medium">
+              Want these entered details as your future default?
+            </span>
+            <div className="flex items-center gap-2">
+              {onResetTemplate && (
+                <button
+                  type="button"
+                  onClick={onResetTemplate}
+                  className="text-[11px] font-bold text-slate-500 hover:text-slate-800 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  Reset Defaults
+                </button>
+              )}
+              {onSaveDefaultTemplate && (
+                <button
+                  type="button"
+                  onClick={onSaveDefaultTemplate}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-xs font-bold transition-all shadow-xs"
+                >
+                  <Save size={12} />
+                  <span>Save as Default Template</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

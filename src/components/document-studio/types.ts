@@ -9,7 +9,20 @@ export interface LineItem {
   amount: number;
 }
 
+export interface BankAccount {
+  id: string;
+  bankName: string;
+  accountNumber: string;
+  ifsc: string;
+  accountHolder: string;
+  upiId: string;
+  label?: string;
+  isDefault?: boolean;
+}
+
 export interface BankDetails {
+  id?: string;
+  label?: string;
   bankName: string;
   accountNumber: string;
   ifsc: string;
@@ -18,6 +31,7 @@ export interface BankDetails {
 }
 
 export interface DocumentData {
+  id?: number; // database record ID when editing an existing document
   mode: DocumentMode;
   documentNumber: string;
   issueDate: string;
@@ -55,4 +69,3 @@ export interface DocumentData {
   termsAndConditions: string;
   bankDetails: BankDetails;
 }
-
