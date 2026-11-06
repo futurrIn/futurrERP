@@ -17,10 +17,12 @@ import {
   FileWarning,
   Percent,
   Flame,
-  PiggyBank
+  PiggyBank,
+  FileSpreadsheet
 } from 'lucide-react';
 import { format, subDays, isAfter, isPast, differenceInMonths } from 'date-fns';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import MonthlyFinancialExportModal from './MonthlyFinancialExportModal';
 
 const Dashboard = ({ onNavigateToHistory }: { onNavigateToHistory: () => void }) => {
   const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: api.getProfile });
@@ -62,6 +64,7 @@ const Dashboard = ({ onNavigateToHistory }: { onNavigateToHistory: () => void })
 
   const [timeframe, setTimeframe] = useState<'7d' | '1m' | '6m' | 'all'>('1m');
   const [activeChart, setActiveChart] = useState<'revenue' | 'expenses' | 'both'>('both');
+  const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
 
   // Time filters
   const filterByTimeframe = (items: any[], dateField: string = 'date') => {
@@ -251,25 +254,37 @@ const Dashboard = ({ onNavigateToHistory }: { onNavigateToHistory: () => void })
         </div>
         
         {isFinanceRole && (
-          <div className="flex items-center gap-2 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm self-start">
-            {[
-              { id: '7d', label: '7D' },
-              { id: '1m', label: '1M' },
-              { id: '6m', label: '6M' },
-              { id: 'all', label: 'ALL' }
-            ].map(tf => (
-              <button
-                key={tf.id}
-                onClick={() => setTimeframe(tf.id as any)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
-                  timeframe === tf.id 
-                    ? 'bg-slate-900 text-white' 
-                    : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                {tf.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-3 self-start md:self-auto flex-wrap">
+            <div className="flex items-center gap-1.5 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm">
+              {[
+                { id: '7d', label: '7D' },
+                { id: '1m', label: '1M' },
+                { id: '6m', label: '6M' },
+                { id: 'all', label: 'ALL' }
+              ].map(tf => (
+                <button
+                  key={tf.id}
+                  onClick={() => setTimeframe(tf.id as any)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                    timeframe === tf.id 
+                      ? 'bg-slate-900 text-white shadow-xs' 
+                      : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                  }`}
+                >
+                  {tf.label}
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsExportModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black shadow-md shadow-emerald-700/20 hover:shadow-lg transition-all active:scale-[0.98]"
+              title="Export Monthly Financial Report & Employee Expenses to Excel"
+            >
+              <FileSpreadsheet size={16} />
+              <span>Export Monthly Report (.xlsx)</span>
+            </button>
           </div>
         )}
       </div>
@@ -426,6 +441,18 @@ const Dashboard = ({ onNavigateToHistory }: { onNavigateToHistory: () => void })
           <h3 className="text-xl font-bold text-slate-800 mb-2">Welcome to {settings?.companyName || 'Futurr ERP'}</h3>
           <p className="text-slate-500">Your role doesn't have access to the advanced financial dashboard.</p>
         </div>
+      )}
+
+      {isFinanceRole && (
+        <MonthlyFinancialExportModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          payments={payments}
+          teamExpenses={teamExpenses}
+          sales={sales}
+          allAdvances={allAdvances}
+          capital={capital}
+        />
       )}
     </div>
   );
