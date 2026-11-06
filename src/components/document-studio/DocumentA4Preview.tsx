@@ -277,26 +277,26 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                 )}
 
                 {/* Line Items Table */}
-                <div className="px-7 pt-4 pb-2">
+                <div className="px-7 pt-3 pb-1">
                   <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ borderBottom: '2px solid #0f172a' }}>
-                        <th className="py-2.5 px-3 text-[10px] font-black uppercase tracking-wider w-10 text-center" style={{ color: '#475569' }}>
+                        <th className="py-2 px-3 text-[10px] font-black uppercase tracking-wider w-10 text-center" style={{ color: '#475569' }}>
                           #
                         </th>
-                        <th className="py-2.5 px-3 text-[10px] font-black uppercase tracking-wider" style={{ color: '#475569' }}>
+                        <th className="py-2 px-3 text-[10px] font-black uppercase tracking-wider" style={{ color: '#475569' }}>
                           Item / Service
                         </th>
-                        <th className="py-2.5 px-3 text-[10px] font-black uppercase tracking-wider text-center w-32" style={{ color: '#475569' }}>
+                        <th className="py-2 px-3 text-[10px] font-black uppercase tracking-wider text-center w-32" style={{ color: '#475569' }}>
                           Category
                         </th>
-                        <th className="py-2.5 px-3 text-[10px] font-black uppercase tracking-wider text-center w-20" style={{ color: '#475569' }}>
+                        <th className="py-2 px-3 text-[10px] font-black uppercase tracking-wider text-center w-20" style={{ color: '#475569' }}>
                           Qty / Days
                         </th>
-                        <th className="py-2.5 px-3 text-[10px] font-black uppercase tracking-wider text-right w-28" style={{ color: '#475569' }}>
+                        <th className="py-2 px-3 text-[10px] font-black uppercase tracking-wider text-right w-28" style={{ color: '#475569' }}>
                           Unit Rate (₹)
                         </th>
-                        <th className="py-2.5 px-3 text-[10px] font-black uppercase tracking-wider text-right w-32" style={{ color: '#475569' }}>
+                        <th className="py-2 px-3 text-[10px] font-black uppercase tracking-wider text-right w-32" style={{ color: '#475569' }}>
                           Amount (₹)
                         </th>
                       </tr>
@@ -312,15 +312,15 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                               backgroundColor: idx % 2 === 0 ? '#ffffff' : '#fafafa'
                             }}
                           >
-                            <td className="py-3 px-3 text-xs font-bold text-center" style={{ color: '#94a3b8' }}>
+                            <td className="py-2.5 px-3 text-xs font-bold text-center" style={{ color: '#94a3b8' }}>
                               {globalIndex}
                             </td>
-                            <td className="py-3 px-3">
+                            <td className="py-2.5 px-3">
                               <div className="text-xs font-bold leading-snug" style={{ color: '#0f172a', wordSpacing: '0.06em' }}>
                                 {item.name || 'Untitled Service'}
                               </div>
                             </td>
-                            <td className="py-3 px-3 text-center">
+                            <td className="py-2.5 px-3 text-center">
                               <span
                                 className="inline-block px-2.5 py-0.5 rounded text-[10px] font-semibold"
                                 style={{
@@ -333,13 +333,13 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
                                 {item.category || 'Service'}
                               </span>
                             </td>
-                            <td className="py-3 px-3 text-xs font-bold text-center" style={{ color: '#0f172a' }}>
+                            <td className="py-2.5 px-3 text-xs font-bold text-center" style={{ color: '#0f172a' }}>
                               {item.quantity}
                             </td>
-                            <td className="py-3 px-3 text-xs font-medium text-right font-mono" style={{ color: '#334155' }}>
+                            <td className="py-2.5 px-3 text-xs font-medium text-right font-mono" style={{ color: '#334155' }}>
                               ₹{formatINR(item.rate)}
                             </td>
-                            <td className="py-3 px-3 text-xs font-black text-right font-mono" style={{ color: '#0f172a' }}>
+                            <td className="py-2.5 px-3 text-xs font-black text-right font-mono" style={{ color: '#0f172a' }}>
                               ₹{formatINR(item.amount)}
                             </td>
                           </tr>
