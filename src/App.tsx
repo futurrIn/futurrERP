@@ -46,6 +46,7 @@ const AppContent: React.FC = () => {
   const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [selectedInvestorId, setSelectedInvestorId] = useState<string | null>(null);
+  const [docStudioInitialData, setDocStudioInitialData] = useState<any>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -100,7 +101,12 @@ const AppContent: React.FC = () => {
       case 'dashboard':
         return <Dashboard onNavigateToHistory={() => setActiveTab(profile?.role === 'Admin' || profile?.role === 'Accountant' ? 'sales-history' : 'expense-history')} />;
       case 'document-studio':
-        return <DocumentStudio />;
+        return (
+          <DocumentStudio 
+            initialData={docStudioInitialData} 
+            onClearInitialData={() => setDocStudioInitialData(null)} 
+          />
+        );
       case 'receipt-generator':
         return (
           <ReceiptGenerator 
@@ -129,7 +135,15 @@ const AppContent: React.FC = () => {
         if (!selectedCustomerId) return <CustomerManager />;
         return <CustomerProfile customerId={selectedCustomerId} onBack={() => setActiveTab('customers')} />;
       case 'payments':
-        return <PaymentManager defaultSaleId={selectedSaleId} />;
+        return (
+          <PaymentManager 
+            defaultSaleId={selectedSaleId} 
+            onOpenDocReceipt={(docReceiptData) => {
+              setDocStudioInitialData(docReceiptData);
+              setActiveTab('document-studio');
+            }}
+          />
+        );
       case 'liabilities':
         return <LiabilityManager />;
       case 'capital':

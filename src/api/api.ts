@@ -543,8 +543,8 @@ export const api = {
   createPayment: async (payment: any) => {
     const { data: { user } } = await supabase.auth.getUser();
     
-    // Create receipt number
-    const receiptNum = `REC-${Date.now().toString().slice(-6)}`;
+    // Create receipt number if not provided
+    const receiptNum = payment.receipt_number || `REC-${Date.now().toString().slice(-6)}`;
 
     const { data, error } = await supabase
       .from('payments')
@@ -564,6 +564,57 @@ export const api = {
     }
 
     return data;
+  },
+
+  syncReceiptPayment: async (saleId: number, paymentData: { amount: number; receipt_number: string; payment_method?: string; transaction_id?: string }) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // Check if payment with this receipt_number or linked to this sale_id already exists
+    const { data: existingList } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('sale_id', saleId);
+
+    const existing = existingList?.find((p: any) => p.receipt_number === paymentData.receipt_number) || existingList?.[0];
+
+    let result;
+    if (existing) {
+      const { data, error } = await supabase
+        .from('payments')
+        .update({
+          amount: paymentData.amount,
+          receipt_number: paymentData.receipt_number,
+          payment_method: paymentData.payment_method || existing.payment_method || 'Bank Transfer',
+          transaction_id: paymentData.transaction_id || existing.transaction_id || '',
+          status: 'Completed'
+        })
+        .eq('id', existing.id)
+        .select()
+        .single();
+      if (error) throw error;
+      result = data;
+    } else {
+      const { data, error } = await supabase
+        .from('payments')
+        .insert([{
+          sale_id: saleId,
+          amount: paymentData.amount,
+          receipt_number: paymentData.receipt_number,
+          payment_method: paymentData.payment_method || 'Bank Transfer',
+          transaction_id: paymentData.transaction_id || '',
+          status: 'Completed',
+          created_by: user?.id
+        }])
+        .select()
+        .single();
+      if (error) throw error;
+      result = data;
+    }
+
+    // Ensure sale status is marked as Paid
+    await supabase.from('sales').update({ status: 'Paid' }).eq('id', saleId);
+
+    return result;
   },
 
   updatePayment: async (id: number, payment: any) => {

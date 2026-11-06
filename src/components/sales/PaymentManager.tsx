@@ -2,19 +2,22 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/api';
 import { format } from 'date-fns';
-import { CreditCard, Download, PlusCircle, CheckCircle2, X, Edit } from 'lucide-react';
+import { CreditCard, Receipt, PlusCircle, CheckCircle2, X, Edit, FileSpreadsheet } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
-import ReceiptTemplate from '../receipt/ReceiptTemplate';
 
 const PAYMENT_METHODS = ['UPI', 'Cash', 'Bank Transfer', 'Razorpay', 'Card', 'Other'];
 
-const PaymentManager = ({ defaultSaleId }: { defaultSaleId?: number | null }) => {
+interface PaymentManagerProps {
+  defaultSaleId?: number | null;
+  onOpenDocReceipt?: (docData: any) => void;
+}
+
+const PaymentManager: React.FC<PaymentManagerProps> = ({ defaultSaleId, onOpenDocReceipt }) => {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(!!defaultSaleId);
   const [selectedSaleId, setSelectedSaleId] = useState<number | ''>(defaultSaleId || '');
   const [editingPaymentId, setEditingPaymentId] = useState<number | null>(null);
-  const [viewingReceipt, setViewingReceipt] = useState<any>(null);
 
   const { register, handleSubmit, reset } = useForm({
     defaultValues: {
@@ -70,41 +73,77 @@ const PaymentManager = ({ defaultSaleId }: { defaultSaleId?: number | null }) =>
     setShowForm(true);
   };
 
-  const handleDownloadReceipt = (payment: any) => {
+  const handleOpenDocReceipt = (payment: any) => {
     const sale = sales.find((s: any) => s.id === payment.sale_id);
-    if (!sale) {
-      toast.error('Sale details not found for this payment');
-      return;
+    const df = sale?.dynamic_fields || {};
+
+    let docReceiptData: any;
+
+    if (df.fullDocData) {
+      docReceiptData = {
+        ...df.fullDocData,
+        id: sale.id,
+        mode: 'receipt',
+        documentNumber: payment.receipt_number || df.fullDocData.documentNumber || `REC-FUT-${payment.id}`,
+        issueDate: payment.created_at ? payment.created_at.split('T')[0] : (df.fullDocData.issueDate || new Date().toISOString().split('T')[0]),
+        bookingRef: payment.transaction_id || df.fullDocData.bookingRef || `FUT-${sale.id}`
+      };
+    } else {
+      docReceiptData = {
+        id: sale?.id,
+        mode: 'receipt',
+        documentNumber: payment.receipt_number || `REC-FUT-${payment.id}`,
+        issueDate: payment.created_at ? payment.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+        dueDate: payment.created_at ? payment.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+        customerId: sale?.customer_id || null,
+        customerName: sale?.customers?.name || df.customerName || 'Contact not recorded',
+        customerCompany: sale?.customers?.company || df.customerCompany || '',
+        customerAddress: sale?.customers?.dynamic_fields?.address || df.customerAddress || df.venue || 'Mumbai, Maharashtra',
+        customerEmail: sale?.customers?.email || df.customerEmail || '',
+        customerPhone: sale?.customers?.phone || df.customerPhone || '',
+        customerGst: sale?.customers?.gst || df.customerGst || '',
+        venue: df.venue || 'Mumbai, Maharashtra',
+        bookingRef: payment.transaction_id || df.bookingRef || `FUT-${sale?.id || payment.id}`,
+        items: df.items && df.items.length > 0 ? df.items : [
+          {
+            id: 'item_1',
+            name: sale?.service_product || 'Robotics Services & High-Tech Deployments',
+            category: sale?.category || 'Robotics Rental',
+            quantity: 1,
+            rate: payment.amount || sale?.final_amount || 0,
+            amount: payment.amount || sale?.final_amount || 0
+          }
+        ],
+        transportCharges: df.transportCharges || 0,
+        discount: sale?.discount || df.discount || 0,
+        gstType: df.gstType || (sale?.tax > 0 ? 'cgst_sgst' : 'exempt'),
+        gstRate: df.gstRate || 18,
+        logoUrl: settings?.logo || '/logo.svg',
+        companyName: settings?.companyName || 'Futurr Innovations and Research',
+        companyTagline: settings?.tagline || 'Advanced Humanoid & Quadruped Robotics, High-Tech Stage Deployments & Automation',
+        companyAddress: settings?.companyAddress || 'first floor Ak building, oppsosite KSRTC, Mannarcad Road, Perinthalmanna, Malappuram, Kerala-679322',
+        brandPreset: 'Neo-Core',
+        badgeBg: 'dark',
+        signatoryName: 'Albin - Operations Lead',
+        signatoryDesignation: 'Authorized Signatory, Futurr Innovations and Research',
+        signatureDataUrl: settings?.signature,
+        termsAndConditions: 'Payment received with thanks. Official payment receipt generated electronically by Futurr Innovations and Research.',
+        bankDetails: {
+          bankName: settings?.bank_name || 'HDFC Bank Ltd',
+          accountNumber: settings?.bank_account || '50200088921044',
+          ifsc: settings?.bank_ifsc || 'HDFC0001234',
+          accountHolder: 'Futurr Innovations and Research',
+          upiId: settings?.bank_upi || 'futurr@upi'
+        }
+      };
     }
 
-    const mappedData = {
-      id: payment.id,
-      receiptNumber: payment.receipt_number,
-      date: payment.created_at,
-      studentName: sale.customers?.name || 'Customer',
-      mobile: sale.customers?.phone || '',
-      email: sale.customers?.email || '',
-      courseName: sale.service_product,
-      category: sale.category,
-      paymentMethod: payment.payment_method,
-      transactionId: payment.transaction_id,
-      amount: payment.amount,
-      status: 'Completed',
-      includeSignature: true
-    };
-
-    setViewingReceipt(mappedData);
+    if (onOpenDocReceipt) {
+      onOpenDocReceipt(docReceiptData);
+    } else {
+      toast.success(`Opening Receipt #${docReceiptData.documentNumber}`);
+    }
   };
-
-  if (viewingReceipt && settings) {
-    return (
-      <ReceiptTemplate 
-        receipt={viewingReceipt} 
-        settings={settings} 
-        onClose={() => setViewingReceipt(null)} 
-      />
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -240,10 +279,11 @@ const PaymentManager = ({ defaultSaleId }: { defaultSaleId?: number | null }) =>
                         <Edit size={14} /> Edit
                       </button>
                       <button 
-                        onClick={() => handleDownloadReceipt(payment)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg text-sm font-bold transition-colors"
+                        onClick={() => handleOpenDocReceipt(payment)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200/80 rounded-lg text-xs sm:text-sm font-bold transition-colors shadow-xs"
+                        title="Open official vector receipt in Document Studio"
                       >
-                        <Download size={14} /> Receipt
+                        <Receipt size={14} /> Doc Receipt
                       </button>
                     </td>
                   </tr>

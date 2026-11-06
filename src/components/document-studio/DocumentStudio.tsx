@@ -33,7 +33,15 @@ import PastDocumentsModal from './PastDocumentsModal';
 import { exportA4PDF, triggerA4Print } from './utils/pdfExport';
 import { calculateDocumentTotals, formatINR } from './utils/calculations';
 
-export const DocumentStudio: React.FC = () => {
+interface DocumentStudioProps {
+  initialData?: DocumentData | null;
+  onClearInitialData?: () => void;
+}
+
+export const DocumentStudio: React.FC<DocumentStudioProps> = ({
+  initialData,
+  onClearInitialData
+}) => {
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<'split' | 'a4'>('split');
   const [mobileTab, setMobileTab] = useState<'editor' | 'preview'>('editor');
@@ -124,6 +132,18 @@ export const DocumentStudio: React.FC = () => {
   });
 
   const [isPastDocsOpen, setIsPastDocsOpen] = useState(false);
+
+  // Handle direct document/receipt navigation (e.g. from Payments & Receipts tab)
+  useEffect(() => {
+    if (initialData) {
+      setDocData(initialData);
+      try {
+        localStorage.setItem('futurr_doc_studio_draft', JSON.stringify(initialData));
+      } catch (e) {}
+      onClearInitialData?.();
+      toast.success(`Loaded ${initialData.mode === 'receipt' ? 'Receipt' : 'Document'} #${initialData.documentNumber}`);
+    }
+  }, [initialData]);
 
   const totals = calculateDocumentTotals(docData);
 
@@ -368,19 +388,39 @@ export const DocumentStudio: React.FC = () => {
         }
       };
 
+      let savedRecord: any;
       if (docData.id) {
-        return api.updateSale(docData.id, payload);
+        savedRecord = await api.updateSale(docData.id, payload);
       } else {
-        const created = await api.createSale(payload);
-        if (created?.id) {
-          setDocData(prev => ({ ...prev, id: created.id }));
+        savedRecord = await api.createSale(payload);
+        if (savedRecord?.id) {
+          setDocData(prev => ({ ...prev, id: savedRecord.id }));
         }
-        return created;
       }
+
+      // If document is a receipt, automatically record/sync payment in Payments & Receipts
+      const targetSaleId = docData.id || savedRecord?.id;
+      if (docData.mode === 'receipt' && targetSaleId) {
+        try {
+          await api.syncReceiptPayment(targetSaleId, {
+            amount: finalAmt,
+            receipt_number: docData.documentNumber,
+            payment_method: docData.bankDetails?.bankName ? 'Bank Transfer' : 'UPI',
+            transaction_id: docData.bookingRef || ''
+          });
+        } catch (pErr) {
+          console.warn('Auto-recording payment failed:', pErr);
+        }
+      }
+
+      return savedRecord;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
-      if (docData.id) {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      if (docData.mode === 'receipt') {
+        toast.success(`Receipt #${docData.documentNumber} saved & recorded in Payments & Receipts!`);
+      } else if (docData.id) {
         toast.success(`Document #${docData.documentNumber} updated successfully!`);
       } else {
         toast.success(`${docData.mode.toUpperCase()} #${docData.documentNumber} saved to ERP records!`);
