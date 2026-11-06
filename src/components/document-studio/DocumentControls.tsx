@@ -57,10 +57,10 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
       {/* 1. Official Branding Header (Managed in Admin Settings) */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-3 min-w-0 w-full sm:w-auto">
           <div className="w-12 h-12 rounded-xl border border-slate-200 bg-slate-900 flex items-center justify-center overflow-hidden shrink-0 shadow-inner p-1.5">
             {data.logoUrl ? (
               <img src={data.logoUrl} alt="Logo" className="w-full h-full object-contain" />
@@ -68,7 +68,7 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
               <span className="text-[10px] text-white font-black">FUTURR</span>
             )}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h3 className="font-bold text-slate-900 text-xs sm:text-sm truncate">
               {data.companyName || 'Futurr Innovations and Research'}
             </h3>
@@ -81,10 +81,10 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
         <button
           type="button"
           onClick={() => (window as any).setActiveTab?.('settings')}
-          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 transition-all"
+          className="shrink-0 self-end sm:self-auto inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 transition-all"
         >
           <Building2 size={13} className="text-purple-600" />
-          <span className="hidden sm:inline">Settings</span>
+          <span>Edit in Settings</span>
         </button>
       </div>
 
@@ -231,9 +231,9 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
         </div>
 
         {/* Signature Preview from Settings */}
-        <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-4">
+        <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-28 h-12 rounded-lg bg-white border border-slate-200 p-1 flex items-center justify-center overflow-hidden">
+            <div className="w-24 sm:w-28 h-12 rounded-lg bg-white border border-slate-200 p-1 flex items-center justify-center overflow-hidden shrink-0">
               {data.signatureDataUrl ? (
                 <img src={data.signatureDataUrl} alt="Signature" className="max-h-full max-w-full object-contain" />
               ) : (
@@ -249,7 +249,7 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
           <button
             type="button"
             onClick={() => (window as any).setActiveTab?.('settings')}
-            className="text-[11px] font-bold text-purple-600 hover:text-purple-700 hover:bg-purple-50 px-2.5 py-1.5 rounded-lg border border-purple-200 transition-colors"
+            className="self-end sm:self-auto text-[11px] font-bold text-purple-600 hover:text-purple-700 hover:bg-purple-50 px-2.5 py-1.5 rounded-lg border border-purple-200 transition-colors"
           >
             Edit in Settings
           </button>
@@ -257,8 +257,8 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
       </div>
 
       {/* 4. Line Items Breakdown Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
           <div>
             <h3 className="font-bold text-slate-800 text-sm">Line Items Breakdown</h3>
             <p className="text-[11px] text-slate-400">Add robots, equipment, software, crew, and custom items</p>
@@ -266,7 +266,7 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
           <button
             type="button"
             onClick={() => handleAddItem()}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
+            className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
           >
             <Plus size={13} /> Add Item Field
           </button>
@@ -291,19 +291,19 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
                   placeholder="Item / Service description..."
                   value={item.name}
                   onChange={(e) => handleUpdateItem(item.id, { name: e.target.value })}
-                  className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-purple-500"
+                  className="flex-1 min-w-0 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-purple-500"
                 />
                 <input
                   type="text"
                   placeholder="Category"
                   value={item.category}
                   onChange={(e) => handleUpdateItem(item.id, { category: e.target.value })}
-                  className="w-28 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-600 outline-none focus:border-purple-500"
+                  className="w-20 sm:w-28 shrink-0 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-600 outline-none focus:border-purple-500"
                 />
                 <button
                   type="button"
                   onClick={() => handleRemoveItem(item.id)}
-                  className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
+                  className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors shrink-0"
                   title="Remove item"
                 >
                   <Trash2 size={15} />
@@ -393,11 +393,11 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
             <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
               GST Calculation Type
             </label>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => onChange({ gstType: 'exempt' })}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all text-center ${
                   data.gstType === 'exempt'
                     ? 'bg-purple-600 text-white shadow-sm'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -408,7 +408,7 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
               <button
                 type="button"
                 onClick={() => onChange({ gstType: 'cgst_sgst', gstRate: 18 })}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all text-center ${
                   data.gstType === 'cgst_sgst'
                     ? 'bg-purple-600 text-white shadow-sm'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -419,7 +419,7 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
               <button
                 type="button"
                 onClick={() => onChange({ gstType: 'igst', gstRate: 18 })}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all text-center ${
                   data.gstType === 'igst'
                     ? 'bg-purple-600 text-white shadow-sm'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -445,7 +445,7 @@ export const DocumentControls: React.FC<DocumentControlsProps> = ({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
             <div>
               <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                 Bank Name

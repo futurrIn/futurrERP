@@ -38,18 +38,29 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
 
   return (
     <div className="w-full flex justify-center py-2 px-1 overflow-x-auto">
-      <div 
-        id="document-a4-scale-wrapper"
-        style={{ 
-          transform: scale !== 1 ? `scale(${scale})` : undefined, 
-          transformOrigin: 'top center',
-          transition: 'transform 0.15s ease-out'
+      <div
+        id="document-a4-outer-container"
+        className="relative mx-auto overflow-hidden transition-all duration-150"
+        style={{
+          width: `${Math.round(794 * scale)}px`,
+          height: `${Math.round(1123 * scale)}px`,
+          maxWidth: '100%',
         }}
       >
-        {/* Strict ISO A4 Proportion Container (~794px x 1123px at 96 DPI) */}
-        <div
-          id="document-a4-sheet"
-          className="w-[794px] min-h-[1123px] bg-white text-slate-800 shadow-2xl rounded-sm flex flex-col justify-between select-text"
+        <div 
+          id="document-a4-scale-wrapper"
+          style={{ 
+            transform: scale !== 1 ? `scale(${scale})` : undefined, 
+            transformOrigin: 'top left',
+            width: '794px',
+            minHeight: '1123px',
+            transition: 'transform 0.15s ease-out'
+          }}
+        >
+          {/* Strict ISO A4 Proportion Container (~794px x 1123px at 96 DPI) */}
+          <div
+            id="document-a4-sheet"
+            className="w-[794px] min-h-[1123px] bg-white text-slate-800 shadow-2xl rounded-sm flex flex-col justify-between select-text"
           style={{
             fontFamily: '"Segoe UI", -apple-system, Roboto, BlinkMacSystemFont, Arial, sans-serif',
             letterSpacing: '0.012em',
@@ -426,6 +437,7 @@ export const DocumentA4Preview: React.FC<DocumentA4PreviewProps> = ({ data, scal
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 };
 export default DocumentA4Preview;

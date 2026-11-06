@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   FileText, 
   Receipt, 
@@ -15,7 +15,9 @@ import {
   Bot,
   ZoomIn,
   ZoomOut,
-  Maximize2
+  Maximize2,
+  ArrowLeft,
+  ArrowRight
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
@@ -24,12 +26,15 @@ import { DocumentData, DocumentMode, LineItem } from './types';
 import DocumentControls from './DocumentControls';
 import DocumentA4Preview from './DocumentA4Preview';
 import { exportA4PDF, triggerA4Print } from './utils/pdfExport';
+import { calculateDocumentTotals, formatINR } from './utils/calculations';
 
 export const DocumentStudio: React.FC = () => {
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<'split' | 'a4'>('split');
+  const [mobileTab, setMobileTab] = useState<'editor' | 'preview'>('editor');
   const [isExporting, setIsExporting] = useState(false);
-  const [zoom, setZoom] = useState<number>(0.92);
+  const [zoom, setZoom] = useState<number>(0.85);
+  const previewStageRef = useRef<HTMLDivElement>(null);
 
   // Load existing customers for auto-population
   const { data: customers = [] } = useQuery({
@@ -95,6 +100,33 @@ export const DocumentStudio: React.FC = () => {
       upiId: 'futurr@upi'
     }
   });
+
+  const totals = calculateDocumentTotals(docData);
+
+  // Dynamic Auto-Fit Zoom calculation based on container or window width
+  const handleAutoFit = () => {
+    if (previewStageRef.current) {
+      const containerWidth = previewStageRef.current.clientWidth;
+      const horizontalPadding = window.innerWidth < 640 ? 16 : 48;
+      const available = containerWidth - horizontalPadding;
+      const calculated = Math.min(1.0, Math.max(0.35, Number((available / 794).toFixed(2))));
+      setZoom(calculated);
+    } else {
+      const w = window.innerWidth;
+      if (w < 440) setZoom(0.42);
+      else if (w < 640) setZoom(0.48);
+      else if (w < 1024) setZoom(0.65);
+      else setZoom(0.85);
+    }
+  };
+
+  // Run auto-fit on initial mount and on window resize
+  useEffect(() => {
+    handleAutoFit();
+    const onResize = () => handleAutoFit();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   // Sync settings directly from Admin Settings into Document Studio
   useEffect(() => {
@@ -198,7 +230,7 @@ export const DocumentStudio: React.FC = () => {
   });
 
   return (
-    <div className="space-y-4 w-full animate-in fade-in duration-300">
+    <div className="space-y-4 w-full animate-in fade-in duration-300 pb-20 lg:pb-6">
       {/* Print-only stylesheet to enforce strict A4 printing */}
       <style>{`
         @media print {
@@ -230,33 +262,33 @@ export const DocumentStudio: React.FC = () => {
       `}</style>
 
       {/* Top Banner & Mode Navigation Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-4 w-full">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3.5 sm:p-5 space-y-3.5 sm:space-y-4 w-full">
         {/* Row 1: Brand title and customer loader */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center font-black shadow-md shadow-purple-200">
-              <Bot size={22} />
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-3 sm:pb-4">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center font-black shadow-md shadow-purple-200 shrink-0">
+              <Bot size={20} className="sm:w-[22px] sm:h-[22px]" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-black text-slate-900 tracking-tight">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight truncate">
                   {docData.companyName || 'Futurr Innovations and Research'}
                 </h1>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 bg-purple-100 text-purple-700 rounded-md">
+                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-1.5 sm:px-2 py-0.5 bg-purple-100 text-purple-700 rounded-md shrink-0">
                   DOC STUDIO
                 </span>
               </div>
-              <p className="text-xs text-slate-500 font-medium">Robotics &amp; AI • Quotation, Tax Invoice &amp; Receipt Suite</p>
+              <p className="text-[11px] sm:text-xs text-slate-500 font-medium truncate">Robotics &amp; AI • Quotation, Tax Invoice &amp; Receipt Suite</p>
             </div>
           </div>
 
           {/* Customer / Lead Auto-loader */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500 shrink-0">Load Customer:</span>
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <span className="text-xs font-bold text-slate-500 shrink-0">Client:</span>
             <select
               value={docData.customerId || ''}
               onChange={(e) => handleSelectCustomer(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-purple-500/20 max-w-xs"
+              className="flex-1 md:flex-initial px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-purple-500/20 max-w-full md:max-w-xs"
             >
               <option value="">Select Existing Customer / Inquiry...</option>
               {customers.map((c: any) => (
@@ -271,51 +303,51 @@ export const DocumentStudio: React.FC = () => {
         {/* Row 2: Mode selector, view toggle, and actions */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Document Mode Pills */}
-          <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl w-fit">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2">
-              DOCUMENT:
+          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl w-full sm:w-fit overflow-x-auto scrollbar-hide">
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1.5 sm:px-2 shrink-0">
+              TYPE:
             </span>
             <button
               type="button"
               onClick={() => handleModeChange('quotation')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-black transition-all shrink-0 ${
                 docData.mode === 'quotation'
                   ? 'bg-purple-600 text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <FileSpreadsheet size={14} />
+              <FileSpreadsheet size={13} className="shrink-0" />
               <span>Quotation</span>
             </button>
             <button
               type="button"
               onClick={() => handleModeChange('invoice')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-black transition-all shrink-0 ${
                 docData.mode === 'invoice'
                   ? 'bg-purple-600 text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <FileText size={14} />
+              <FileText size={13} className="shrink-0" />
               <span>Tax Invoice</span>
             </button>
             <button
               type="button"
               onClick={() => handleModeChange('receipt')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-black transition-all shrink-0 ${
                 docData.mode === 'receipt'
                   ? 'bg-purple-600 text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Receipt size={14} />
-              <span>Payment Receipt</span>
+              <Receipt size={13} className="shrink-0" />
+              <span>Receipt</span>
             </button>
           </div>
 
-          {/* View Toggles & Actions */}
-          <div className="flex items-center gap-2">
-            <div className="flex p-1 bg-slate-100 rounded-xl">
+          {/* Desktop View Toggles & Actions */}
+          <div className="flex items-center justify-between sm:justify-end gap-2">
+            <div className="hidden lg:flex p-1 bg-slate-100 rounded-xl">
               <button
                 type="button"
                 onClick={() => setViewMode('split')}
@@ -324,7 +356,7 @@ export const DocumentStudio: React.FC = () => {
                 }`}
               >
                 <Sliders size={13} />
-                <span>Interactive Studio</span>
+                <span>Split Studio</span>
               </button>
               <button
                 type="button"
@@ -338,25 +370,71 @@ export const DocumentStudio: React.FC = () => {
               </button>
             </div>
 
-            <button
-              type="button"
-              disabled={saveMutation.isPending}
-              onClick={() => saveMutation.mutate()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
-              title="Save to ERP Records"
-            >
-              <Save size={14} />
-              <span className="hidden sm:inline">Save Record</span>
-            </button>
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <button
+                type="button"
+                disabled={saveMutation.isPending}
+                onClick={() => saveMutation.mutate()}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+                title="Save to ERP Records"
+              >
+                <Save size={14} />
+                <span>Save Record</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isExporting}
+                onClick={handleExportPDF}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-black transition-all shadow-sm shadow-purple-900/30 disabled:opacity-50"
+              >
+                <Download size={14} />
+                <span>{isExporting ? 'Exporting...' : 'Export PDF'}</span>
+              </button>
+            </div>
           </div>
+        </div>
+
+        {/* Row 3: Mobile/Tablet View Segmented Switch (lg:hidden) */}
+        <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl lg:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileTab('editor')}
+            className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
+              mobileTab === 'editor'
+                ? 'bg-white text-purple-700 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Sliders size={14} />
+            <span>Form Controls</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMobileTab('preview');
+              setTimeout(handleAutoFit, 50);
+            }}
+            className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
+              mobileTab === 'preview'
+                ? 'bg-purple-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Eye size={14} />
+            <span>Live A4 Preview</span>
+            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${mobileTab === 'preview' ? 'bg-purple-800 text-white' : 'bg-slate-200 text-slate-700'}`}>
+              ₹{formatINR(totals.grandTotal)}
+            </span>
+          </button>
         </div>
       </div>
 
-      {/* Main Workspace: Full Width Flex Layout */}
+      {/* Main Workspace: Full Width Responsive Layout */}
       <div className="flex flex-col lg:flex-row gap-6 items-start w-full">
-        {/* Left Column: Form & Customization Controls */}
-        {viewMode === 'split' && (
-          <div className="w-full lg:w-[480px] xl:w-[520px] 2xl:w-[560px] shrink-0 space-y-6">
+        {/* Left Column: Form Controls (Visible if Split View on Desktop OR Editor Tab on Mobile) */}
+        {(viewMode === 'split' || mobileTab === 'editor') && (
+          <div className={`w-full lg:w-[480px] xl:w-[520px] 2xl:w-[560px] shrink-0 space-y-6 ${mobileTab !== 'editor' ? 'hidden lg:block' : ''}`}>
             <DocumentControls
               data={docData}
               onChange={(updates) => setDocData(prev => ({ ...prev, ...updates }))}
@@ -365,32 +443,38 @@ export const DocumentStudio: React.FC = () => {
           </div>
         )}
 
-        {/* Right Column: Live A4 Preview Workspace */}
-        <div className="flex-1 w-full min-w-0">
+        {/* Right Column: Live A4 Preview Workspace (Visible if on Desktop OR Preview Tab on Mobile) */}
+        <div className={`flex-1 w-full min-w-0 ${mobileTab !== 'preview' ? 'hidden lg:block' : ''}`}>
           {/* Action & Zoom Bar Above Preview */}
-          <div className="bg-slate-900 text-white rounded-2xl p-3 px-4 mb-4 flex flex-wrap items-center justify-between gap-3 shadow-md w-full">
-            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400">
-              <CheckCircle2 size={16} />
-              <span>Real-Time Synchronized Sheet</span>
+          <div className="bg-slate-900 text-white rounded-2xl p-3 px-3 sm:px-4 mb-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-md w-full">
+            <div className="flex items-center justify-between sm:justify-start gap-2 text-xs font-semibold text-emerald-400">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 size={16} className="shrink-0" />
+                <span className="truncate">Synchronized A4 Sheet</span>
+              </div>
+              <div className="sm:hidden font-mono font-bold text-white text-xs bg-slate-800 px-2 py-0.5 rounded">
+                ₹{formatINR(totals.grandTotal)}
+              </div>
             </div>
 
-            {/* Zoom Controls */}
-            <div className="flex items-center gap-2">
+            {/* Zoom Controls & Quick Actions */}
+            <div className="flex items-center justify-between sm:justify-end gap-2 flex-wrap">
+              {/* Zoom Buttons Group */}
               <div className="flex items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700">
                 <button
                   type="button"
-                  onClick={() => setZoom(prev => Math.max(0.6, Number((prev - 0.08).toFixed(2))))}
+                  onClick={() => setZoom(prev => Math.max(0.35, Number((prev - 0.06).toFixed(2))))}
                   className="p-1.5 text-slate-400 hover:text-white rounded transition-colors"
                   title="Zoom Out"
                 >
                   <ZoomOut size={13} />
                 </button>
-                <span className="text-[11px] font-mono font-bold text-slate-300 px-2 select-none">
+                <span className="text-[11px] font-mono font-bold text-slate-300 px-1.5 select-none min-w-[34px] text-center">
                   {Math.round(zoom * 100)}%
                 </span>
                 <button
                   type="button"
-                  onClick={() => setZoom(prev => Math.min(1.3, Number((prev + 0.08).toFixed(2))))}
+                  onClick={() => setZoom(prev => Math.min(1.3, Number((prev + 0.06).toFixed(2))))}
                   className="p-1.5 text-slate-400 hover:text-white rounded transition-colors"
                   title="Zoom In"
                 >
@@ -398,59 +482,106 @@ export const DocumentStudio: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setZoom(0.92)}
-                  className="text-[10px] font-bold text-slate-400 hover:text-white px-2 py-1 border-l border-slate-700 transition-colors"
-                  title="Reset Zoom"
+                  onClick={handleAutoFit}
+                  className="text-[10px] font-bold text-purple-400 hover:text-white px-2 py-1 border-l border-slate-700 transition-colors"
+                  title="Auto Fit to Screen"
                 >
                   Fit
                 </button>
                 <button
                   type="button"
                   onClick={() => setZoom(1.0)}
-                  className="text-[10px] font-bold text-slate-400 hover:text-white px-2 py-1 border-l border-slate-700 transition-colors"
-                  title="Actual Size"
+                  className="text-[10px] font-bold text-slate-400 hover:text-white px-2 py-1 border-l border-slate-700 transition-colors hidden xs:inline-block"
+                  title="100% Actual Size"
                 >
                   100%
                 </button>
               </div>
 
+              {/* Desktop View Switcher */}
               <button
                 type="button"
                 onClick={() => setViewMode(prev => prev === 'split' ? 'a4' : 'split')}
-                className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold transition-colors"
+                className="hidden lg:inline-block px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold transition-colors"
               >
                 {viewMode === 'split' ? 'Full View' : 'Split View'}
+              </button>
+
+              {/* Mobile Back to Editor button */}
+              <button
+                type="button"
+                onClick={() => setMobileTab('editor')}
+                className="lg:hidden inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold transition-colors"
+              >
+                <ArrowLeft size={13} />
+                <span>Editor</span>
               </button>
 
               <button
                 type="button"
                 onClick={triggerA4Print}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold transition-colors"
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-bold transition-colors"
                 title="Print vector PDF via browser"
               >
                 <Printer size={13} />
-                <span className="hidden sm:inline">Print Vector</span>
+                <span className="hidden md:inline">Print</span>
               </button>
 
               <button
                 type="button"
                 disabled={isExporting}
                 onClick={handleExportPDF}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-black transition-all shadow-md shadow-purple-900/50 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-black transition-all shadow-md shadow-purple-900/50 disabled:opacity-50"
               >
-                <Download size={14} />
-                <span>{isExporting ? 'Exporting...' : 'Export PDF'}</span>
+                <Download size={13} />
+                <span>{isExporting ? 'Exporting...' : 'PDF'}</span>
               </button>
             </div>
           </div>
 
           {/* Live A4 Stage: High-contrast Dark Studio Canvas */}
-          <div className="bg-slate-800/95 p-4 sm:p-8 rounded-2xl border border-slate-700/80 flex flex-col items-center justify-start min-h-[920px] overflow-x-auto shadow-2xl w-full">
+          <div 
+            ref={previewStageRef}
+            className="bg-slate-800/95 p-2 sm:p-6 md:p-8 rounded-2xl border border-slate-700/80 flex flex-col items-center justify-start min-h-[520px] sm:min-h-[750px] lg:min-h-[920px] overflow-x-auto shadow-2xl w-full"
+          >
             <DocumentA4Preview data={docData} scale={zoom} />
           </div>
         </div>
       </div>
+
+      {/* Floating Bottom Quick Bar on Mobile (when in Editor mode) */}
+      {mobileTab === 'editor' && (
+        <div className="fixed bottom-3 left-3 right-3 z-30 lg:hidden flex items-center gap-2 p-2 bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-700 shadow-2xl">
+          <button
+            type="button"
+            onClick={() => {
+              setMobileTab('preview');
+              setTimeout(handleAutoFit, 50);
+            }}
+            className="flex-1 py-2.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-purple-900/40"
+          >
+            <Eye size={15} />
+            <span>View Live Preview</span>
+            <span className="px-1.5 py-0.5 rounded bg-purple-800 text-[10px] font-mono">
+              ₹{formatINR(totals.grandTotal)}
+            </span>
+            <ArrowRight size={13} />
+          </button>
+
+          <button
+            type="button"
+            disabled={isExporting}
+            onClick={handleExportPDF}
+            className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-700 shrink-0"
+            title="Download PDF"
+          >
+            <Download size={15} />
+            <span className="hidden xs:inline">PDF</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
+
 export default DocumentStudio;
